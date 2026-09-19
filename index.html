@@ -1,0 +1,35 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>My Applications</title><style>:root{--bg:#F7F5F0;--bg2:#FFFFFF;--ink:#1C1E24;--ink-soft:#6B6A5F;--line:#E4E0D2;--accent:#2F6F4E;--accent-soft:#DCEADE;--radius:10px;}@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#15171C;--bg2:#1D2026;--ink:#EDEAE0;--ink-soft:#9A9788;--line:#2B2E36;--accent:#5FBE8A;--accent-soft:#203029;}}:root[data-theme="dark"]{--bg:#15171C;--bg2:#1D2026;--ink:#EDEAE0;--ink-soft:#9A9788;--line:#2B2E36;--accent:#5FBE8A;--accent-soft:#203029;}*{box-sizing:border-box;}html,body{height:100%;margin:0;}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;background:var(--bg);color:var(--ink);padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);transition:background .3s ease,color .3s ease;}a{color:inherit;}header{padding:52px 24px 28px;text-align:center;max-width:900px;margin:0 auto;}header .logo{max-height:56px;margin-bottom:14px;}header h1{font-size:clamp(26px,5vw,40px);margin:0 0 8px;letter-spacing:-.02em;animation:headIn .7s cubic-bezier(.19,1,.22,1) both;}header p.sub{color:var(--ink-soft);font-size:15px;margin:0;animation:headIn .7s .08s cubic-bezier(.19,1,.22,1) both;}@keyframes headIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:none;}}.controls{max-width:960px;margin:0 auto;padding:0 24px 8px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:center;}.search{flex:1;min-width:220px;max-width:420px;position:relative;}.search input{width:100%;padding:11px 14px 11px 38px;border-radius:999px;border:1px solid var(--line);background:var(--bg2);color:var(--ink);font-size:14px;}.search:before{content:"⌕";position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--ink-soft);}.chips{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;}.chip{border:1px solid var(--line);background:var(--bg2);color:var(--ink-soft);padding:6px 14px;border-radius:999px;font-size:13px;cursor:pointer;transition:background .15s ease,color .15s ease,border-color .15s ease;}.chip.active{background:var(--accent);border-color:var(--accent);color:#fff;}main{max-width:1080px;margin:0 auto;padding:28px 24px 80px;}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:16px;}.grid.list{grid-template-columns:1fr;}.card{background:var(--bg2);border:1px solid var(--line);border-radius:var(--radius);padding:18px;text-decoration:none;display:block;color:var(--ink);transition:transform 260ms cubic-bezier(.19,1,.22,1), box-shadow 260ms ease, border-color .2s ease;opacity:0;transform:translateY(16px);animation:cardIn 520ms cubic-bezier(.19,1,.22,1) forwards;}@keyframes cardIn{to{opacity:1;transform:none;}}.card:hover,.card:focus-visible{transform:translateY(-6px);box-shadow:0 10px 30px rgba(0,0,0,.12);border-color:var(--accent);}.card .icon{width:48px;height:48px;border-radius:12px;background:var(--accent-soft);display:flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:14px;overflow:hidden;transition:transform .2s ease;}.card:hover .icon{transform:scale(1.08) rotate(-3deg);}.card .icon img{width:100%;height:100%;object-fit:cover;}.card h3{margin:0 0 4px;font-size:16px;}.card p{margin:0 0 10px;font-size:13px;color:var(--ink-soft);line-height:1.5;}.card .meta{display:flex;gap:8px;font-size:11px;color:var(--ink-soft);}.card .meta span{border:1px solid var(--line);border-radius:6px;padding:2px 7px;}.empty{text-align:center;padding:60px 20px;color:var(--ink-soft);animation:headIn .4s ease both;}.empty .glyph{font-size:34px;display:block;margin-bottom:10px;}footer{text-align:center;padding:30px 20px 50px;color:var(--ink-soft);font-size:12px;}@media (prefers-reduced-motion: reduce){*{animation-duration:.001ms !important;transition-duration:.001ms !important;}}:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}</style></head><body data-theme="dark"><header><h1>My Applications</h1></header><div class="controls"><div class="search"><input type="search" id="q" placeholder="Search applications…" aria-label="Search applications"></div><div class="chips" id="chips"><button class="chip active" data-cat="">All</button><button class="chip" data-cat="Utility">Utility</button><button class="chip" data-cat="Finance">Finance</button><button class="chip" data-cat="Education">Education</button></div></div><main><div class="grid " id="grid" role="list"></div><div class="empty" id="empty" style="display:none;"><span class="glyph">🔎</span>No applications found.</div></main><footer>Built with Crate · 6 applications</footer><script>const SHOW_VERSION=true,SHOW_CATEGORY=true,SHOW_DESC=true,STAGGER=60;
+async function loadApps(){ if(window.__EMBEDDED_APPS__) return window.__EMBEDDED_APPS__; try{ const r=await fetch("apps.json"); const d=await r.json(); return d.applications||[]; }catch(e){ return []; } }
+function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g, function(c){ return ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[c]; }); }
+function iconHtml(a){ if(a.iconType==="image" && a.iconPath) return '<img src="'+a.iconPath+'" alt="">'; return '<span>'+(a.icon||"\ud83e\udde9")+'</span>'; }
+function render(apps, q, cat){
+  const grid=document.getElementById("grid"); const empty=document.getElementById("empty");
+  const ql=(q||"").toLowerCase();
+  const filtered = apps.filter(function(a){
+    const hay=[a.name,a.description,a.id,a.category].join(" ").toLowerCase();
+    const okQ=!ql||hay.includes(ql); const okC=!cat||a.category===cat; return okQ&&okC;
+  });
+  grid.innerHTML = filtered.map(function(a,i){
+    return '<a class="card" role="listitem" href="'+a.path+'" style="animation-delay:'+(i*STAGGER)+'ms">'
+      + '<div class="icon">'+iconHtml(a)+'</div><h3>'+esc(a.name)+'</h3>'
+      + (SHOW_DESC && a.description? '<p>'+esc(a.description)+'</p>':'')
+      + '<div class="meta">'+(SHOW_VERSION?'<span>v'+esc(a.version||"1.0")+'</span>':'')+(SHOW_CATEGORY && a.category?'<span>'+esc(a.category)+'</span>':'')+'</div></a>';
+  }).join("");
+  empty.style.display = filtered.length? "none":"block";
+}
+loadApps().then(function(apps){
+  let currentCat="";
+  render(apps,"","");
+  const qEl=document.getElementById("q");
+  qEl.addEventListener("input", function(){ render(apps, qEl.value, currentCat); });
+  const chips=document.getElementById("chips");
+  if(chips){
+    chips.addEventListener("click", function(e){
+      const b=e.target.closest(".chip"); if(!b) return;
+      Array.from(chips.children).forEach(function(c){ c.classList.remove("active"); });
+      b.classList.add("active"); currentCat=b.dataset.cat;
+      render(apps, qEl.value, currentCat);
+    });
+  }
+});
+</script></body></html>
