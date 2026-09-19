@@ -1,0 +1,2878 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0a0f1e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SP125 Care">
+<meta name="description" content="Honda SP125 Bike Maintenance Manager">
+<title>SP125 Care</title>
+<link rel="manifest" href="#" id="manifest-placeholder">
+<style>
+  /* ── FONTS ── */
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+  /* ── CSS VARIABLES ── */
+  :root {
+    --bg: #080d1a;
+    --bg2: #0d1426;
+    --bg3: #111c35;
+    --card: rgba(255,255,255,0.04);
+    --card-border: rgba(255,255,255,0.08);
+    --accent: #ff6b2b;
+    --accent2: #ff9a3c;
+    --blue: #3d9eff;
+    --green: #22d97a;
+    --red: #ff4d6a;
+    --yellow: #ffc947;
+    --purple: #a855f7;
+    --text: #f0f4ff;
+    --text2: #8896b3;
+    --text3: #4a5878;
+    --radius: 18px;
+    --radius-sm: 12px;
+    --shadow: 0 8px 32px rgba(0,0,0,0.5);
+    --transition: 0.3s cubic-bezier(0.4,0,0.2,1);
+    --nav-h: 72px;
+    --header-h: 60px;
+  }
+  .light {
+    --bg: #f0f4ff;
+    --bg2: #e4eaf8;
+    --bg3: #d8e2f5;
+    --card: rgba(255,255,255,0.7);
+    --card-border: rgba(0,0,50,0.08);
+    --text: #0d1426;
+    --text2: #3a4a68;
+    --text3: #8896b3;
+    --shadow: 0 8px 32px rgba(0,0,80,0.12);
+  }
+
+  /* ── RESET ── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    transition: background var(--transition), color var(--transition);
+    overscroll-behavior: none;
+  }
+  button { cursor: pointer; border: none; background: none; color: inherit; font: inherit; }
+  input, textarea, select { font: inherit; color: inherit; background: none; border: none; outline: none; }
+  input::placeholder, textarea::placeholder { color: var(--text3); }
+
+  /* ── APP SHELL ── */
+  #app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; overflow: hidden; position: relative; }
+
+  /* ── LOADING SCREEN ── */
+  #loader {
+    position: fixed; inset: 0; background: var(--bg); z-index: 9999;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px;
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+  #loader.hidden { opacity: 0; pointer-events: none; transform: scale(1.05); }
+  .loader-logo {
+    width: 90px; height: 90px; border-radius: 28px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 40px; animation: logoPulse 1.5s ease-in-out infinite;
+    box-shadow: 0 0 40px rgba(255,107,43,0.5);
+  }
+  @keyframes logoPulse { 0%,100%{transform:scale(1);box-shadow:0 0 40px rgba(255,107,43,0.5)} 50%{transform:scale(1.06);box-shadow:0 0 60px rgba(255,107,43,0.8)} }
+  .loader-text { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 700; color: var(--text); }
+  .loader-sub { font-size: 13px; color: var(--text2); }
+  .loader-bar { width: 200px; height: 3px; background: var(--bg3); border-radius: 99px; overflow: hidden; }
+  .loader-fill { height: 100%; background: linear-gradient(90deg,var(--accent),var(--accent2)); border-radius: 99px; animation: loaderFill 1.8s ease forwards; }
+  @keyframes loaderFill { from{width:0} to{width:100%} }
+
+  /* ── HEADER ── */
+  #header {
+    height: var(--header-h); display: flex; align-items: center; justify-content: space-between;
+    padding: 0 20px; flex-shrink: 0;
+    background: var(--bg); border-bottom: 1px solid var(--card-border);
+    position: relative; z-index: 100;
+  }
+  .header-title { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; }
+  .header-actions { display: flex; gap: 8px; }
+  .icon-btn {
+    width: 38px; height: 38px; border-radius: 12px;
+    background: var(--card); border: 1px solid var(--card-border);
+    display: flex; align-items: center; justify-content: center; font-size: 17px;
+    transition: var(--transition); active-transform: scale(0.92);
+  }
+  .icon-btn:active { transform: scale(0.92); background: var(--bg3); }
+
+  /* ── PAGES ── */
+  #pages { flex: 1; overflow: hidden; position: relative; }
+  .page {
+    position: absolute; inset: 0; overflow-y: auto; overflow-x: hidden;
+    padding: 16px 16px calc(var(--nav-h) + 16px);
+    opacity: 0; transform: translateX(30px); pointer-events: none;
+    transition: opacity 0.32s ease, transform 0.32s cubic-bezier(0.4,0,0.2,1);
+    -webkit-overflow-scrolling: touch;
+  }
+  .page.active { opacity: 1; transform: translateX(0); pointer-events: all; }
+  .page.exit-left { opacity: 0; transform: translateX(-30px); }
+
+  /* ── BOTTOM NAV ── */
+  #nav {
+    height: var(--nav-h); flex-shrink: 0;
+    background: var(--bg2); border-top: 1px solid var(--card-border);
+    display: flex; align-items: center; justify-content: space-around;
+    padding-bottom: env(safe-area-inset-bottom);
+    position: relative; z-index: 100;
+  }
+  .nav-btn {
+    flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px;
+    padding: 8px 4px; transition: var(--transition); position: relative;
+  }
+  .nav-btn .nav-icon { font-size: 22px; transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1); }
+  .nav-btn .nav-label { font-size: 10px; font-weight: 600; color: var(--text3); transition: color var(--transition); letter-spacing: 0.3px; }
+  .nav-btn.active .nav-icon { transform: translateY(-3px) scale(1.15); }
+  .nav-btn.active .nav-label { color: var(--accent); }
+  .nav-indicator {
+    position: absolute; bottom: -1px; left: 50%; transform: translateX(-50%);
+    width: 0; height: 3px; background: var(--accent); border-radius: 99px 99px 0 0;
+    transition: width 0.3s cubic-bezier(0.4,0,0.2,1);
+  }
+  .nav-btn.active .nav-indicator { width: 24px; }
+  .nav-btn:active .nav-icon { transform: translateY(-3px) scale(1.05); }
+
+  /* ── CARDS ── */
+  .card {
+    background: var(--card); border: 1px solid var(--card-border);
+    border-radius: var(--radius); padding: 18px; margin-bottom: 14px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  }
+  .card:active { transform: scale(0.985); }
+  .card-title {
+    font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700;
+    color: var(--text2); text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 14px;
+  }
+
+  /* ── DASHBOARD ── */
+  .hero-card {
+    background: linear-gradient(135deg, #ff6b2b 0%, #ff4500 40%, #c22000 100%);
+    border: none; padding: 22px; position: relative; overflow: hidden;
+  }
+  .hero-card::before {
+    content: ''; position: absolute; right: -30px; top: -30px;
+    width: 180px; height: 180px; border-radius: 50%;
+    background: rgba(255,255,255,0.06); pointer-events: none;
+  }
+  .hero-card::after {
+    content: '🏍️'; position: absolute; right: 16px; bottom: 12px;
+    font-size: 72px; opacity: 0.18; pointer-events: none;
+    transform: scaleX(-1);
+  }
+  .hero-bike { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; color: #fff; }
+  .hero-odo { font-size: 40px; font-weight: 700; color: #fff; line-height: 1; margin: 6px 0; font-family: 'Syne', sans-serif; }
+  .hero-odo span { font-size: 16px; font-weight: 400; opacity: 0.8; }
+  .hero-next { font-size: 13px; color: rgba(255,255,255,0.85); background: rgba(0,0,0,0.2); border-radius: 99px; display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; margin-top: 10px; }
+  .hero-edit { position: absolute; top: 16px; right: 16px; background: rgba(255,255,255,0.15); border-radius: 10px; padding: 6px 12px; font-size: 13px; color: #fff; font-weight: 600; }
+  .hero-edit:active { background: rgba(255,255,255,0.25); }
+
+  /* Progress grid */
+  .progress-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .prog-card {
+    background: var(--card); border: 1px solid var(--card-border);
+    border-radius: var(--radius-sm); padding: 14px; text-align: center;
+    transition: var(--transition); backdrop-filter: blur(12px);
+    animation: cardIn 0.4s ease both;
+  }
+  .prog-card:nth-child(2) { animation-delay: 0.05s; }
+  .prog-card:nth-child(3) { animation-delay: 0.1s; }
+  .prog-card:nth-child(4) { animation-delay: 0.15s; }
+  .prog-card:nth-child(5) { animation-delay: 0.2s; }
+  .prog-card:nth-child(6) { animation-delay: 0.25s; }
+  .prog-card:nth-child(7) { animation-delay: 0.3s; }
+  @keyframes cardIn { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:none} }
+  .prog-card:active { transform: scale(0.95); }
+  .prog-ring { position: relative; width: 64px; height: 64px; margin: 0 auto 10px; }
+  .prog-ring svg { width: 64px; height: 64px; transform: rotate(-90deg); }
+  .prog-ring circle { fill: none; stroke-width: 5; stroke-linecap: round; }
+  .prog-ring .track { stroke: var(--bg3); }
+  .prog-ring .fill { stroke-dasharray: 175.9; stroke-dashoffset: 175.9; transition: stroke-dashoffset 1.2s cubic-bezier(0.4,0,0.2,1); }
+  .prog-ring .pct { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; font-family: 'Syne', sans-serif; }
+  .prog-name { font-size: 12px; font-weight: 600; color: var(--text2); }
+  .prog-due { font-size: 10px; color: var(--text3); margin-top: 2px; }
+  .status-ok { color: var(--green); }
+  .status-warn { color: var(--yellow); }
+  .status-bad { color: var(--red); }
+
+  /* Alerts strip */
+  .alert-strip {
+    background: linear-gradient(135deg,rgba(255,76,106,0.15),rgba(255,76,106,0.05));
+    border: 1px solid rgba(255,76,106,0.3); border-radius: var(--radius-sm);
+    padding: 14px; margin-bottom: 14px; display: flex; align-items: flex-start; gap: 12px;
+  }
+  .alert-strip .icon { font-size: 22px; }
+  .alert-strip .text { flex: 1; }
+  .alert-strip .title { font-size: 14px; font-weight: 700; color: var(--red); margin-bottom: 4px; }
+  .alert-strip .items { font-size: 13px; color: var(--text2); line-height: 1.8; }
+  .alert-strip.warn { background: linear-gradient(135deg,rgba(255,201,71,0.12),rgba(255,201,71,0.04)); border-color: rgba(255,201,71,0.3); }
+  .alert-strip.warn .title { color: var(--yellow); }
+
+  /* ── CHECKLIST ── */
+  .section-header {
+    font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700;
+    color: var(--accent); margin: 18px 0 10px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .section-header .line { flex: 1; height: 1px; background: var(--card-border); }
+  .check-item {
+    display: flex; align-items: center; gap: 14px;
+    padding: 14px 16px; background: var(--card);
+    border: 1px solid var(--card-border); border-radius: var(--radius-sm);
+    margin-bottom: 8px; cursor: pointer; transition: var(--transition);
+    -webkit-user-select: none; user-select: none;
+    backdrop-filter: blur(8px);
+  }
+  .check-item:active { transform: scale(0.97); }
+  .check-item.checked { background: rgba(34,217,122,0.07); border-color: rgba(34,217,122,0.25); }
+  .check-box {
+    width: 24px; height: 24px; border-radius: 8px; flex-shrink: 0;
+    border: 2px solid var(--text3); display: flex; align-items: center; justify-content: center;
+    transition: var(--transition); font-size: 14px; color: transparent;
+  }
+  .check-item.checked .check-box {
+    background: var(--green); border-color: var(--green); color: #fff;
+    animation: checkBounce 0.35s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  @keyframes checkBounce { 0%{transform:scale(0.5)} 100%{transform:scale(1)} }
+  .check-label { font-size: 14px; font-weight: 500; flex: 1; }
+  .check-item.checked .check-label { text-decoration: line-through; color: var(--text3); }
+  .checklist-progress {
+    background: var(--card); border: 1px solid var(--card-border); border-radius: var(--radius);
+    padding: 16px; margin-bottom: 14px; display: flex; align-items: center; gap: 16px;
+  }
+  .cl-stats { flex: 1; }
+  .cl-count { font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 800; }
+  .cl-label { font-size: 13px; color: var(--text2); }
+  .cl-bar { height: 6px; background: var(--bg3); border-radius: 99px; overflow: hidden; flex: 2; }
+  .cl-fill { height: 100%; background: linear-gradient(90deg,var(--green),#00e5a0); border-radius: 99px; transition: width 0.6s cubic-bezier(0.4,0,0.2,1); }
+  .reset-btn {
+    background: rgba(255,76,106,0.15); border: 1px solid rgba(255,76,106,0.3);
+    border-radius: var(--radius-sm); padding: 8px 16px; font-size: 13px; font-weight: 600;
+    color: var(--red); transition: var(--transition);
+  }
+  .reset-btn:active { background: rgba(255,76,106,0.3); transform: scale(0.96); }
+
+  /* ── HISTORY ── */
+  .fab {
+    position: fixed; bottom: calc(var(--nav-h) + 16px); right: 16px;
+    width: 54px; height: 54px; border-radius: 50%;
+    background: linear-gradient(135deg,var(--accent),var(--accent2));
+    box-shadow: 0 6px 24px rgba(255,107,43,0.5);
+    display: flex; align-items: center; justify-content: center; font-size: 24px; color: #fff;
+    z-index: 50; transition: var(--transition);
+    animation: fabIn 0.4s cubic-bezier(0.34,1.56,0.64,1) both;
+  }
+  @keyframes fabIn { from{transform:scale(0);opacity:0} to{transform:scale(1);opacity:1} }
+  .fab:active { transform: scale(0.88); }
+  .search-bar {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--card); border: 1px solid var(--card-border);
+    border-radius: var(--radius-sm); padding: 10px 14px; margin-bottom: 14px;
+  }
+  .search-bar input { flex: 1; font-size: 14px; }
+  .history-item {
+    background: var(--card); border: 1px solid var(--card-border); border-radius: var(--radius);
+    padding: 16px; margin-bottom: 10px; cursor: pointer;
+    transition: var(--transition); backdrop-filter: blur(8px);
+    animation: cardIn 0.3s ease both;
+  }
+  .history-item:active { transform: scale(0.985); }
+  .history-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+  .history-date { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; }
+  .history-cost { font-size: 16px; font-weight: 700; color: var(--accent); font-family: 'Syne', sans-serif; }
+  .history-odo { font-size: 13px; color: var(--text2); margin-bottom: 6px; }
+  .history-work { font-size: 14px; color: var(--text); line-height: 1.5; }
+  .history-mechanic { font-size: 12px; color: var(--text3); margin-top: 6px; }
+  .history-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .tag { background: rgba(61,158,255,0.15); border: 1px solid rgba(61,158,255,0.25); border-radius: 99px; padding: 3px 10px; font-size: 11px; color: var(--blue); font-weight: 600; }
+  .delete-btn { background: rgba(255,76,106,0.15); border-radius: 8px; padding: 6px 10px; font-size: 12px; color: var(--red); font-weight: 600; transition: var(--transition); }
+  .delete-btn:active { background: rgba(255,76,106,0.3); }
+  .empty-state { text-align: center; padding: 60px 20px; color: var(--text3); }
+  .empty-state .icon { font-size: 56px; margin-bottom: 16px; opacity: 0.5; }
+  .empty-state p { font-size: 15px; }
+
+  /* ── EXPENSES ── */
+  .stat-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+  .stat-box {
+    background: var(--card); border: 1px solid var(--card-border);
+    border-radius: var(--radius-sm); padding: 16px; text-align: center;
+    backdrop-filter: blur(8px); animation: cardIn 0.4s ease both;
+  }
+  .stat-box:nth-child(2) { animation-delay: 0.06s; }
+  .stat-val { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; color: var(--accent); }
+  .stat-lbl { font-size: 12px; color: var(--text2); margin-top: 4px; }
+  .parts-list { list-style: none; }
+  .parts-list li {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 0; border-bottom: 1px solid var(--card-border); font-size: 14px;
+  }
+  .parts-list li:last-child { border-bottom: none; }
+  .parts-list .cost { color: var(--accent); font-weight: 600; font-family: 'Syne', sans-serif; }
+
+  /* ── SETTINGS ── */
+  .settings-section { margin-bottom: 22px; }
+  .setting-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 0; border-bottom: 1px solid var(--card-border); gap: 12px;
+  }
+  .setting-item:last-child { border-bottom: none; }
+  .setting-label { font-size: 15px; font-weight: 500; }
+  .setting-desc { font-size: 13px; color: var(--text2); margin-top: 2px; }
+  /* Toggle */
+  .toggle { position: relative; width: 50px; height: 28px; flex-shrink: 0; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .toggle-track {
+    position: absolute; inset: 0; background: var(--bg3); border-radius: 99px; cursor: pointer;
+    transition: background 0.3s ease;
+  }
+  .toggle input:checked + .toggle-track { background: var(--accent); }
+  .toggle-thumb {
+    position: absolute; left: 3px; top: 3px; width: 22px; height: 22px;
+    background: #fff; border-radius: 50%; transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    pointer-events: none;
+  }
+  .toggle input:checked ~ .toggle-thumb { transform: translateX(22px); }
+  /* Setting button */
+  .setting-action {
+    background: var(--card); border: 1px solid var(--card-border);
+    border-radius: var(--radius-sm); padding: 10px 16px; font-size: 14px; font-weight: 600;
+    color: var(--text); transition: var(--transition); white-space: nowrap;
+  }
+  .setting-action:active { transform: scale(0.95); background: var(--bg3); }
+  .setting-action.danger { color: var(--red); background: rgba(255,76,106,0.1); border-color: rgba(255,76,106,0.25); }
+  .setting-action.danger:active { background: rgba(255,76,106,0.2); }
+  .odometer-input {
+    background: var(--bg3); border: 1px solid var(--card-border);
+    border-radius: var(--radius-sm); padding: 10px 14px; font-size: 16px;
+    font-weight: 700; font-family: 'Syne', sans-serif; width: 140px; text-align: center;
+    color: var(--text);
+  }
+
+  /* ── MODAL ── */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 500;
+    display: flex; align-items: flex-end; opacity: 0; pointer-events: none;
+    transition: opacity 0.3s ease; backdrop-filter: blur(4px);
+  }
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+  .modal {
+    background: var(--bg2); border-radius: var(--radius) var(--radius) 0 0;
+    padding: 24px 20px calc(env(safe-area-inset-bottom) + 24px); width: 100%;
+    max-height: 90vh; overflow-y: auto; -webkit-overflow-scrolling: touch;
+    transform: translateY(100%); transition: transform 0.35s cubic-bezier(0.4,0,0.2,1);
+    border-top: 1px solid var(--card-border);
+  }
+  .modal-overlay.open .modal { transform: translateY(0); }
+  .modal-handle { width: 40px; height: 4px; background: var(--card-border); border-radius: 99px; margin: 0 auto 20px; }
+  .modal-title { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800; margin-bottom: 20px; }
+  .form-group { margin-bottom: 16px; }
+  .form-label { font-size: 13px; font-weight: 600; color: var(--text2); margin-bottom: 8px; display: block; text-transform: uppercase; letter-spacing: 0.6px; }
+  .form-input {
+    width: 100%; background: var(--bg3); border: 1px solid var(--card-border);
+    border-radius: var(--radius-sm); padding: 13px 16px; font-size: 15px; color: var(--text);
+    transition: border-color 0.2s ease;
+  }
+  .form-input:focus { border-color: var(--accent); }
+  textarea.form-input { resize: none; min-height: 80px; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .btn-primary {
+    width: 100%; background: linear-gradient(135deg,var(--accent),var(--accent2));
+    border-radius: var(--radius-sm); padding: 16px; font-size: 16px; font-weight: 700;
+    color: #fff; font-family: 'Syne', sans-serif; transition: var(--transition);
+    box-shadow: 0 6px 20px rgba(255,107,43,0.4); margin-top: 4px;
+  }
+  .btn-primary:active { transform: scale(0.96); box-shadow: 0 2px 10px rgba(255,107,43,0.3); }
+  .btn-secondary {
+    width: 100%; background: var(--card); border: 1px solid var(--card-border);
+    border-radius: var(--radius-sm); padding: 14px; font-size: 15px; font-weight: 600;
+    color: var(--text); transition: var(--transition); margin-top: 8px;
+  }
+  .btn-secondary:active { transform: scale(0.96); }
+
+  /* Detail modal */
+  .detail-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--card-border); font-size: 14px; }
+  .detail-row:last-child { border-bottom: none; }
+  .detail-key { color: var(--text2); }
+  .detail-val { font-weight: 600; text-align: right; max-width: 60%; }
+
+  /* ── TOAST ── */
+  #toast-container { position: fixed; top: 80px; left: 50%; transform: translateX(-50%); z-index: 1000; pointer-events: none; display: flex; flex-direction: column; gap: 8px; align-items: center; }
+  .toast {
+    background: var(--bg2); border: 1px solid var(--card-border); border-radius: 99px;
+    padding: 10px 20px; font-size: 14px; font-weight: 600; box-shadow: var(--shadow);
+    display: flex; align-items: center; gap: 8px; white-space: nowrap;
+    animation: toastIn 0.35s cubic-bezier(0.34,1.56,0.64,1) both;
+    backdrop-filter: blur(12px);
+  }
+  .toast.out { animation: toastOut 0.3s ease forwards; }
+  @keyframes toastIn { from{opacity:0;transform:translateY(-12px) scale(0.9)} to{opacity:1;transform:none} }
+  @keyframes toastOut { to{opacity:0;transform:translateY(-12px) scale(0.9)} }
+
+  /* ── MISC ── */
+  .section-label { font-size: 13px; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 10px; }
+  .divider { height: 1px; background: var(--card-border); margin: 16px 0; }
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 99px; font-size: 11px; font-weight: 700; }
+  .badge-ok { background: rgba(34,217,122,0.15); color: var(--green); }
+  .badge-warn { background: rgba(255,201,71,0.15); color: var(--yellow); }
+  .badge-bad { background: rgba(255,76,106,0.15); color: var(--red); }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── DEVTOOLS SHIELD ── */
+  #devtools-shield {
+    display: none; position: fixed; inset: 0; z-index: 99999;
+    background: var(--bg);
+    flex-direction: column; align-items: center; justify-content: center; gap: 16px;
+    text-align: center; padding: 40px;
+  }
+  #devtools-shield.show { display: flex; }
+  .shield-icon { font-size: 72px; animation: logoPulse 2s ease-in-out infinite; }
+  .shield-title { font-family: 'Syne', sans-serif; font-size: 24px; font-weight: 800; color: var(--red); }
+  .shield-msg { font-size: 15px; color: var(--text2); max-width: 300px; line-height: 1.6; }
+  .shield-close { margin-top: 8px; background: var(--card); border: 1px solid var(--card-border); border-radius: var(--radius-sm); padding: 12px 28px; font-size: 15px; font-weight: 700; color: var(--text); transition: var(--transition); }
+  .shield-close:active { transform: scale(0.95); }
+
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 3px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--text3); border-radius: 99px; }
+
+  /* Animations for page load items */
+  .stagger-1 { animation: cardIn 0.4s ease 0.05s both; }
+  .stagger-2 { animation: cardIn 0.4s ease 0.1s both; }
+  .stagger-3 { animation: cardIn 0.4s ease 0.15s both; }
+  .stagger-4 { animation: cardIn 0.4s ease 0.2s both; }
+
+  /* ══════════════════════════════════════
+     AUTH SCREEN STYLES
+  ══════════════════════════════════════ */
+  #auth-screen {
+    position: fixed; inset: 0; z-index: 8000;
+    background: var(--bg);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 20px; overflow-y: auto; -webkit-overflow-scrolling: touch;
+    transition: opacity 0.5s ease, transform 0.5s ease;
+  }
+  #auth-screen.hidden { opacity: 0; pointer-events: none; transform: scale(1.04); }
+
+  /* Animated background mesh */
+  #auth-screen::before {
+    content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background:
+      radial-gradient(ellipse 60% 50% at 20% 20%, rgba(255,107,43,0.12) 0%, transparent 70%),
+      radial-gradient(ellipse 50% 40% at 80% 80%, rgba(61,158,255,0.1) 0%, transparent 70%),
+      radial-gradient(ellipse 40% 40% at 50% 50%, rgba(168,85,247,0.06) 0%, transparent 70%);
+  }
+
+  .auth-wrap { width: 100%; max-width: 420px; position: relative; z-index: 1; }
+
+  /* Logo area */
+  .auth-logo {
+    text-align: center; margin-bottom: 28px;
+    animation: authLogoIn 0.7s cubic-bezier(0.34,1.56,0.64,1) both;
+  }
+  @keyframes authLogoIn { from{opacity:0;transform:translateY(-20px) scale(0.8)} to{opacity:1;transform:none} }
+  .auth-logo-icon {
+    width: 80px; height: 80px; border-radius: 26px; margin: 0 auto 14px;
+    background: linear-gradient(135deg,var(--accent),var(--accent2));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 38px; box-shadow: 0 0 40px rgba(255,107,43,0.4);
+    animation: logoPulse 2s ease-in-out infinite;
+  }
+  .auth-logo-title { font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 800; color: var(--text); }
+  .auth-logo-sub { font-size: 13px; color: var(--text2); margin-top: 4px; }
+
+  /* Panel */
+  .auth-panel {
+    background: var(--bg2); border: 1px solid var(--card-border);
+    border-radius: var(--radius); padding: 28px 24px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    animation: panelIn 0.5s cubic-bezier(0.4,0,0.2,1) 0.15s both;
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  }
+  @keyframes panelIn { from{opacity:0;transform:translateY(24px)} to{opacity:1;transform:none} }
+
+  /* Tab switcher */
+  .auth-tabs { display: flex; background: var(--bg3); border-radius: 12px; padding: 4px; margin-bottom: 24px; }
+  .auth-tab {
+    flex: 1; text-align: center; padding: 10px; border-radius: 9px;
+    font-size: 14px; font-weight: 700; font-family: 'Syne', sans-serif;
+    color: var(--text3); cursor: pointer; transition: all 0.3s ease; user-select: none;
+  }
+  .auth-tab.active {
+    background: linear-gradient(135deg,var(--accent),var(--accent2));
+    color: #fff; box-shadow: 0 4px 14px rgba(255,107,43,0.35);
+  }
+
+  /* Auth form group */
+  .auth-form-group { margin-bottom: 16px; }
+  .auth-label { font-size: 12px; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: 0.7px; margin-bottom: 8px; display: block; }
+  .auth-input-wrap { position: relative; }
+  .auth-input {
+    width: 100%; background: var(--bg3); border: 1.5px solid var(--card-border);
+    border-radius: var(--radius-sm); padding: 13px 16px; font-size: 15px; color: var(--text);
+    transition: border-color 0.25s ease, box-shadow 0.25s ease;
+  }
+  .auth-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(255,107,43,0.15); outline: none; }
+  .auth-input.error { border-color: var(--red); box-shadow: 0 0 0 3px rgba(255,77,106,0.15); }
+  .auth-input.success { border-color: var(--green); }
+  .auth-input-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); font-size: 16px; pointer-events: none; }
+  .auth-input.has-icon { padding-left: 44px; }
+  .auth-toggle-pw {
+    position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+    background: none; border: none; cursor: pointer; font-size: 16px; color: var(--text3);
+    padding: 4px; transition: color 0.2s;
+  }
+  .auth-toggle-pw:hover { color: var(--text); }
+  .auth-input.has-toggle { padding-right: 44px; }
+
+  /* Password strength meter */
+  .pw-strength-wrap { margin-top: 8px; }
+  .pw-strength-bar { height: 4px; background: var(--bg3); border-radius: 99px; overflow: hidden; margin-bottom: 4px; }
+  .pw-strength-fill { height: 100%; border-radius: 99px; transition: width 0.4s ease, background 0.4s ease; width: 0%; }
+  .pw-strength-text { font-size: 11px; color: var(--text3); transition: color 0.3s; }
+
+  /* Auth button */
+  .auth-btn {
+    width: 100%; background: linear-gradient(135deg,var(--accent),var(--accent2));
+    border-radius: var(--radius-sm); padding: 16px; font-size: 16px; font-weight: 700;
+    color: #fff; font-family: 'Syne', sans-serif;
+    box-shadow: 0 6px 20px rgba(255,107,43,0.35);
+    transition: var(--transition); margin-top: 8px;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    border: none; cursor: pointer;
+  }
+  .auth-btn:active { transform: scale(0.97); box-shadow: 0 2px 10px rgba(255,107,43,0.2); }
+  .auth-btn:disabled { opacity: 0.65; cursor: not-allowed; transform: none; }
+  .auth-btn-spinner {
+    width: 18px; height: 18px; border: 2.5px solid rgba(255,255,255,0.35);
+    border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite;
+    display: none; flex-shrink: 0;
+  }
+  .auth-btn.loading .auth-btn-spinner { display: inline-block; }
+  .auth-btn.loading .auth-btn-text { opacity: 0.7; }
+
+  /* Error/hint text */
+  .auth-field-err { font-size: 12px; color: var(--red); margin-top: 5px; display: none; }
+  .auth-field-err.show { display: block; animation: cardIn 0.25s ease both; }
+
+  /* Panel slide animation */
+  .auth-form { transition: opacity 0.3s ease, transform 0.3s ease; }
+  .auth-form.slide-out-left { opacity: 0; transform: translateX(-20px); pointer-events: none; }
+  .auth-form.slide-out-right { opacity: 0; transform: translateX(20px); pointer-events: none; }
+  #auth-form-login { display: block; }
+  #auth-form-signup { display: none; }
+
+  /* Settings icon on auth screen */
+  .auth-settings-btn {
+    position: absolute; top: 16px; right: 16px;
+    width: 40px; height: 40px; border-radius: 12px;
+    background: var(--card); border: 1px solid var(--card-border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; cursor: pointer; z-index: 10;
+    transition: var(--transition);
+  }
+  .auth-settings-btn:active { transform: scale(0.92); background: var(--bg3); }
+
+  /* ══════════════════════════════════════
+     INITIAL SETUP MODAL
+  ══════════════════════════════════════ */
+  #setup-modal-overlay {
+    position: fixed; inset: 0; z-index: 9000;
+    background: rgba(0,0,0,0.85); backdrop-filter: blur(8px);
+    display: flex; align-items: center; justify-content: center; padding: 20px;
+    opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+  }
+  #setup-modal-overlay.open { opacity: 1; pointer-events: all; }
+  .setup-modal {
+    background: var(--bg2); border: 1px solid var(--card-border);
+    border-radius: var(--radius); padding: 28px 24px; width: 100%; max-width: 440px;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.6);
+    transform: translateY(20px) scale(0.97);
+    transition: transform 0.35s cubic-bezier(0.4,0,0.2,1);
+    max-height: 90vh; overflow-y: auto;
+  }
+  #setup-modal-overlay.open .setup-modal { transform: none; }
+  .setup-modal-title { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800; margin-bottom: 6px; }
+  .setup-modal-sub { font-size: 13px; color: var(--text2); margin-bottom: 22px; line-height: 1.6; }
+  .setup-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(255,107,43,0.15); border: 1px solid rgba(255,107,43,0.3);
+    border-radius: 99px; padding: 4px 12px; font-size: 12px; font-weight: 700;
+    color: var(--accent); margin-bottom: 16px;
+  }
+
+  /* ══════════════════════════════════════
+     SETTINGS MODAL (on auth screen)
+  ══════════════════════════════════════ */
+  #auth-settings-overlay {
+    position: fixed; inset: 0; z-index: 9000;
+    background: rgba(0,0,0,0.8); backdrop-filter: blur(8px);
+    display: flex; align-items: center; justify-content: center; padding: 20px;
+    opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+  }
+  #auth-settings-overlay.open { opacity: 1; pointer-events: all; }
+  .auth-settings-modal {
+    background: var(--bg2); border: 1px solid var(--card-border);
+    border-radius: var(--radius); padding: 28px 24px; width: 100%; max-width: 440px;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.6);
+    transform: translateY(16px) scale(0.97);
+    transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+    max-height: 88vh; overflow-y: auto;
+  }
+  #auth-settings-overlay.open .auth-settings-modal { transform: none; }
+
+  /* Currently logged in user badge */
+  .user-badge {
+    display: flex; align-items: center; gap: 10px;
+    background: rgba(34,217,122,0.1); border: 1px solid rgba(34,217,122,0.25);
+    border-radius: var(--radius-sm); padding: 10px 14px; margin-bottom: 14px;
+  }
+  .user-badge-avatar {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: linear-gradient(135deg,var(--accent),var(--accent2));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; flex-shrink: 0;
+  }
+  .user-badge-name { font-weight: 700; font-size: 14px; }
+  .user-badge-sub { font-size: 12px; color: var(--text2); }
+
+  /* Logout btn in header */
+  .logout-icon-btn {
+    width: 38px; height: 38px; border-radius: 12px;
+    background: rgba(255,76,106,0.1); border: 1px solid rgba(255,76,106,0.25);
+    display: flex; align-items: center; justify-content: center; font-size: 17px;
+    transition: var(--transition); cursor: pointer;
+  }
+  .logout-icon-btn:active { transform: scale(0.92); background: rgba(255,76,106,0.2); }
+
+  /* PWA Install Banner */
+  #install-banner {
+    background: linear-gradient(135deg,rgba(61,158,255,0.15),rgba(61,158,255,0.05));
+    border: 1px solid rgba(61,158,255,0.3); border-radius: var(--radius-sm);
+    padding: 14px 16px; margin-bottom: 14px; display: none;
+    align-items: center; gap: 12px;
+  }
+  #install-banner.show { display: flex; animation: cardIn 0.4s ease both; }
+  .install-text { flex: 1; font-size: 13px; }
+  .install-btn { background: var(--blue); color: #fff; border-radius: 8px; padding: 8px 14px; font-size: 13px; font-weight: 700; transition: var(--transition); }
+  .install-btn:active { transform: scale(0.95); }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════
+     INITIAL SETUP MODAL
+══════════════════════════════════════ -->
+<div id="setup-modal-overlay">
+  <div class="setup-modal">
+    <div class="setup-badge">⚙️ Required Setup</div>
+    <div class="setup-modal-title">Configure JSONBin</div>
+    <div class="setup-modal-sub">Before you can login or sign up, please provide your JSONBin.io credentials. These are stored only on this device.</div>
+
+    <div class="auth-form-group">
+      <label class="auth-label">X-Access-Key</label>
+      <div class="auth-input-wrap">
+        <input type="password" id="setup-access-key" class="auth-input has-toggle" placeholder="Paste your X-Access-Key" autocomplete="off" spellcheck="false">
+        <button class="auth-toggle-pw" onclick="togglePwVis('setup-access-key',this)" type="button">👁</button>
+      </div>
+      <div class="auth-field-err" id="setup-key-err">X-Access-Key is required</div>
+    </div>
+
+    <div class="auth-form-group">
+      <label class="auth-label">Authentication BIN ID</label>
+      <div class="auth-input-wrap">
+        <input type="password" id="setup-auth-bin" class="auth-input has-toggle" placeholder="BIN ID for user accounts" autocomplete="off" spellcheck="false">
+        <button class="auth-toggle-pw" onclick="togglePwVis('setup-auth-bin',this)" type="button">👁</button>
+      </div>
+      <div class="auth-field-err" id="setup-authbin-err">Authentication BIN ID is required</div>
+    </div>
+
+    <div class="auth-form-group">
+      <label class="auth-label">User Data BIN ID</label>
+      <div class="auth-input-wrap">
+        <input type="password" id="setup-data-bin" class="auth-input has-toggle" placeholder="BIN ID for app data" autocomplete="off" spellcheck="false">
+        <button class="auth-toggle-pw" onclick="togglePwVis('setup-data-bin',this)" type="button">👁</button>
+      </div>
+      <div class="auth-field-err" id="setup-databin-err">User Data BIN ID is required</div>
+    </div>
+
+    <div style="font-size:12px;color:var(--text2);background:var(--bg3);border-radius:var(--radius-sm);padding:12px;margin-bottom:18px;line-height:1.7">
+      <strong style="color:var(--text)">Two BIN System:</strong><br>
+      • <b>Auth BIN</b> — stores login accounts only<br>
+      • <b>Data BIN</b> — stores your maintenance records<br>
+      • Same X-Access-Key can be used for both
+    </div>
+
+    <button class="auth-btn" id="setup-save-btn" type="button">
+      <div class="auth-btn-spinner"></div>
+      <span class="auth-btn-text">Save & Continue</span>
+    </button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     AUTH SETTINGS MODAL
+══════════════════════════════════════ -->
+<div id="auth-settings-overlay">
+  <div class="auth-settings-modal">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+      <div>
+        <div class="setup-modal-title" style="font-size:18px">⚙️ App Settings</div>
+        <div style="font-size:13px;color:var(--text2)">Update JSONBin configuration</div>
+      </div>
+      <button onclick="closeAuthSettings()" style="background:var(--bg3);border:1px solid var(--card-border);border-radius:10px;padding:8px 12px;font-size:13px;font-weight:700;color:var(--text);cursor:pointer">✕ Close</button>
+    </div>
+
+    <div class="auth-form-group">
+      <label class="auth-label">X-Access-Key</label>
+      <div class="auth-input-wrap">
+        <input type="password" id="asettings-key" class="auth-input has-toggle" placeholder="Paste your X-Access-Key" autocomplete="off" spellcheck="false">
+        <button class="auth-toggle-pw" onclick="togglePwVis('asettings-key',this)" type="button">👁</button>
+      </div>
+    </div>
+
+    <div class="auth-form-group">
+      <label class="auth-label">Authentication BIN ID</label>
+      <div class="auth-input-wrap">
+        <input type="password" id="asettings-auth-bin" class="auth-input has-toggle" placeholder="BIN ID for user accounts" autocomplete="off" spellcheck="false">
+        <button class="auth-toggle-pw" onclick="togglePwVis('asettings-auth-bin',this)" type="button">👁</button>
+      </div>
+    </div>
+
+    <div class="auth-form-group">
+      <label class="auth-label">User Data BIN ID</label>
+      <div class="auth-input-wrap">
+        <input type="password" id="asettings-data-bin" class="auth-input has-toggle" placeholder="BIN ID for app data" autocomplete="off" spellcheck="false">
+        <button class="auth-toggle-pw" onclick="togglePwVis('asettings-data-bin',this)" type="button">👁</button>
+      </div>
+    </div>
+
+    <button class="auth-btn" id="asettings-save-btn" type="button">
+      <div class="auth-btn-spinner"></div>
+      <span class="auth-btn-text">💾 Update Settings</span>
+    </button>
+    <button onclick="closeAuthSettings()" style="width:100%;background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius-sm);padding:13px;font-size:14px;font-weight:600;color:var(--text);margin-top:10px;cursor:pointer;transition:var(--transition)">Cancel</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     AUTH SCREEN (Login / Signup)
+══════════════════════════════════════ -->
+<div id="auth-screen">
+  <!-- Settings button -->
+  <button class="auth-settings-btn" onclick="openAuthSettings()" title="App Settings" aria-label="Settings">⚙️</button>
+
+  <div class="auth-wrap">
+    <!-- Logo -->
+    <div class="auth-logo">
+      <div class="auth-logo-icon">🏍️</div>
+      <div class="auth-logo-title">SP125 Care</div>
+      <div class="auth-logo-sub">Honda SP125 · Maintenance Manager</div>
+    </div>
+
+    <!-- Panel -->
+    <div class="auth-panel">
+      <!-- Tabs -->
+      <div class="auth-tabs">
+        <div class="auth-tab active" id="tab-login" onclick="switchAuthTab('login')">Login</div>
+        <div class="auth-tab" id="tab-signup" onclick="switchAuthTab('signup')">Sign Up</div>
+      </div>
+
+      <!-- LOGIN FORM -->
+      <div id="auth-form-login" class="auth-form">
+        <div class="auth-form-group">
+          <label class="auth-label">Username</label>
+          <div class="auth-input-wrap">
+            <span class="auth-input-icon">👤</span>
+            <input type="text" id="login-username" class="auth-input has-icon" placeholder="Enter your username" autocomplete="username" spellcheck="false">
+          </div>
+          <div class="auth-field-err" id="login-user-err">Username is required</div>
+        </div>
+
+        <div class="auth-form-group">
+          <label class="auth-label">Password</label>
+          <div class="auth-input-wrap">
+            <span class="auth-input-icon">🔒</span>
+            <input type="password" id="login-password" class="auth-input has-icon has-toggle" placeholder="Enter your password" autocomplete="current-password">
+            <button class="auth-toggle-pw" onclick="togglePwVis('login-password',this)" type="button">👁</button>
+          </div>
+          <div class="auth-field-err" id="login-pw-err">Password is required</div>
+        </div>
+
+        <button class="auth-btn" id="login-btn" type="button">
+          <div class="auth-btn-spinner"></div>
+          <span class="auth-btn-text">🚀 Login</span>
+        </button>
+
+        <div style="text-align:center;margin-top:16px;font-size:13px;color:var(--text2)">
+          Don't have an account?
+          <span onclick="switchAuthTab('signup')" style="color:var(--accent);font-weight:700;cursor:pointer"> Sign up</span>
+        </div>
+      </div>
+
+      <!-- SIGNUP FORM -->
+      <div id="auth-form-signup" class="auth-form">
+        <div class="auth-form-group">
+          <label class="auth-label">Full Name</label>
+          <div class="auth-input-wrap">
+            <span class="auth-input-icon">🙂</span>
+            <input type="text" id="signup-name" class="auth-input has-icon" placeholder="Your full name" autocomplete="name">
+          </div>
+          <div class="auth-field-err" id="signup-name-err">Full name is required</div>
+        </div>
+
+        <div class="auth-form-group">
+          <label class="auth-label">Email ID</label>
+          <div class="auth-input-wrap">
+            <span class="auth-input-icon">📧</span>
+            <input type="email" id="signup-email" class="auth-input has-icon" placeholder="your@email.com" autocomplete="email" spellcheck="false">
+          </div>
+          <div class="auth-field-err" id="signup-email-err">Valid email is required</div>
+        </div>
+
+        <div class="auth-form-group">
+          <label class="auth-label">Username</label>
+          <div class="auth-input-wrap">
+            <span class="auth-input-icon">👤</span>
+            <input type="text" id="signup-username" class="auth-input has-icon" placeholder="Choose a username" autocomplete="username" spellcheck="false">
+          </div>
+          <div class="auth-field-err" id="signup-user-err">Username is required (min 3 chars)</div>
+        </div>
+
+        <div class="auth-form-group">
+          <label class="auth-label">Password</label>
+          <div class="auth-input-wrap">
+            <span class="auth-input-icon">🔒</span>
+            <input type="password" id="signup-password" class="auth-input has-icon has-toggle" placeholder="Create strong password" autocomplete="new-password">
+            <button class="auth-toggle-pw" onclick="togglePwVis('signup-password',this)" type="button">👁</button>
+          </div>
+          <div class="pw-strength-wrap" id="pw-strength-wrap">
+            <div class="pw-strength-bar"><div class="pw-strength-fill" id="pw-strength-fill"></div></div>
+            <div class="pw-strength-text" id="pw-strength-text">Enter a password</div>
+          </div>
+          <div class="auth-field-err" id="signup-pw-err">Password does not meet requirements</div>
+        </div>
+
+        <button class="auth-btn" id="signup-btn" type="button">
+          <div class="auth-btn-spinner"></div>
+          <span class="auth-btn-text">✨ Create Account</span>
+        </button>
+
+        <div style="text-align:center;margin-top:16px;font-size:13px;color:var(--text2)">
+          Already have an account?
+          <span onclick="switchAuthTab('login')" style="color:var(--accent);font-weight:700;cursor:pointer"> Login</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="app">
+
+  <!-- LOADER -->
+  <div id="loader">
+    <div class="loader-logo">🏍️</div>
+    <div class="loader-text">SP125 Care</div>
+    <div class="loader-sub">Honda SP125 · Maintenance Manager</div>
+    <div class="loader-bar"><div class="loader-fill"></div></div>
+  </div>
+
+  <!-- DEVTOOLS SHIELD OVERLAY -->
+  <div id="devtools-shield">
+    <div class="shield-icon">🔒</div>
+    <div class="shield-title">Access Restricted</div>
+    <div class="shield-msg">Developer tools detected. Please close DevTools to continue using SP125 Care.</div>
+    <button class="shield-close" onclick="document.getElementById('devtools-shield').classList.remove('show')">Dismiss</button>
+  </div>
+
+  <!-- HEADER -->
+  <div id="header">
+    <div class="header-title">SP125 Care</div>
+    <div class="header-actions">
+      <button class="icon-btn" id="dark-toggle" title="Toggle theme" aria-label="Toggle dark/light mode">☀️</button>
+      <button class="icon-btn" id="notif-btn" title="Alerts" aria-label="Alerts">🔔</button>
+      <button class="logout-icon-btn" id="logout-btn" title="Logout" aria-label="Logout">🚪</button>
+    </div>
+  </div>
+
+  <!-- PAGES -->
+  <div id="pages">
+
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <!-- Hero card -->
+      <div class="card hero-card stagger-1">
+        <div class="hero-bike">Honda SP125</div>
+        <div class="hero-odo" id="dash-odo">32,000 <span>km</span></div>
+        <div id="dash-next" class="hero-next">⏳ Calculating next service…</div>
+        <button class="hero-edit" id="edit-odo-btn">Edit Odo</button>
+      </div>
+
+      <!-- Install banner -->
+      <div id="install-banner">
+        <span style="font-size:22px">📲</span>
+        <div class="install-text"><strong>Install App</strong><br>Add to home screen for offline use</div>
+        <button class="install-btn" id="install-btn">Install</button>
+      </div>
+
+      <!-- Alerts -->
+      <div id="alerts-container"></div>
+
+      <!-- Progress cards -->
+      <div class="card stagger-2" style="padding:16px">
+        <div class="card-title">Maintenance Status</div>
+        <div class="progress-grid" id="progress-grid"></div>
+      </div>
+
+      <!-- Quick stats -->
+      <div class="card stagger-3">
+        <div class="card-title">Quick Stats</div>
+        <div class="stat-row">
+          <div class="stat-box">
+            <div class="stat-val" id="qs-services">0</div>
+            <div class="stat-lbl">Total Services</div>
+          </div>
+          <div class="stat-box" style="animation-delay:0.06s">
+            <div class="stat-val" id="qs-spend">₹0</div>
+            <div class="stat-lbl">Total Spent</div>
+          </div>
+        </div>
+        <div class="stat-row">
+          <div class="stat-box">
+            <div class="stat-val" id="qs-checklist">0%</div>
+            <div class="stat-lbl">Checklist Done</div>
+          </div>
+          <div class="stat-box" style="animation-delay:0.06s">
+            <div class="stat-val" id="qs-last">—</div>
+            <div class="stat-lbl">Last Service</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CHECKLIST -->
+    <div class="page" id="page-checklist">
+      <div class="checklist-progress">
+        <div class="cl-stats">
+          <div class="cl-count" id="cl-count">0/0</div>
+          <div class="cl-label">Items Completed</div>
+        </div>
+        <div class="cl-bar"><div class="cl-fill" id="cl-bar-fill" style="width:0%"></div></div>
+        <button class="reset-btn" id="reset-checklist">Reset</button>
+      </div>
+      <div id="checklist-body"></div>
+    </div>
+
+    <!-- HISTORY -->
+    <div class="page" id="page-history">
+      <div class="search-bar">
+        <span>🔍</span>
+        <input type="text" id="history-search" placeholder="Search service records…" autocomplete="off">
+        <button id="clear-search" style="font-size:16px;color:var(--text3)">✕</button>
+      </div>
+      <div id="history-list"></div>
+      <button class="fab" id="fab-add" aria-label="Add service record">+</button>
+    </div>
+
+    <!-- EXPENSES -->
+    <div class="page" id="page-expenses">
+      <div class="stat-row">
+        <div class="stat-box">
+          <div class="stat-val" id="exp-year">₹0</div>
+          <div class="stat-lbl">This Year</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val" id="exp-total">₹0</div>
+          <div class="stat-lbl">All Time</div>
+        </div>
+      </div>
+      <div class="stat-row">
+        <div class="stat-box">
+          <div class="stat-val" id="exp-last">₹0</div>
+          <div class="stat-lbl">Last Service</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val" id="exp-avg">₹0</div>
+          <div class="stat-lbl">Avg per Service</div>
+        </div>
+      </div>
+
+      <!-- Monthly chart -->
+      <div class="card">
+        <div class="card-title">Monthly Spending</div>
+        <div id="expense-chart" style="height:140px;display:flex;align-items:flex-end;gap:6px;padding-top:8px"></div>
+        <div id="expense-chart-labels" style="display:flex;gap:6px;margin-top:6px"></div>
+      </div>
+
+      <!-- Parts replaced -->
+      <div class="card">
+        <div class="card-title">Parts Replaced</div>
+        <ul class="parts-list" id="parts-list"><li style="color:var(--text3);font-size:13px">No parts recorded yet</li></ul>
+      </div>
+
+      <!-- All records -->
+      <div class="card">
+        <div class="card-title">Expense Breakdown</div>
+        <div id="expense-breakdown"></div>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="page" id="page-settings">
+      <div class="card">
+        <div class="card-title">Bike Info</div>
+        <div class="setting-item">
+          <div>
+            <div class="setting-label">Current Odometer</div>
+            <div class="setting-desc">Update to calculate next service</div>
+          </div>
+          <input type="number" id="odo-setting" class="odometer-input" min="0" max="999999" placeholder="km">
+        </div>
+        <div style="margin-top:10px">
+          <button class="btn-primary" id="save-odo-btn">Save Odometer</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Appearance</div>
+        <div class="setting-item">
+          <div>
+            <div class="setting-label">Dark Mode</div>
+            <div class="setting-desc">Use dark background theme</div>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="dark-mode-toggle" checked>
+            <div class="toggle-track"></div>
+            <div class="toggle-thumb"></div>
+          </label>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Maintenance Intervals</div>
+        <div class="setting-item">
+          <div><div class="setting-label">Engine Oil</div><div class="setting-desc" id="interval-oil">Every 3,000 km</div></div>
+          <span class="badge badge-ok">3000 km</span>
+        </div>
+        <div class="setting-item">
+          <div><div class="setting-label">Chain Lube</div><div class="setting-desc" id="interval-chain">Every 600 km</div></div>
+          <span class="badge badge-ok">600 km</span>
+        </div>
+        <div class="setting-item">
+          <div><div class="setting-label">Air Filter</div><div class="setting-desc">Every 6,000 km</div></div>
+          <span class="badge badge-warn">6000 km</span>
+        </div>
+        <div class="setting-item">
+          <div><div class="setting-label">Fork Oil</div><div class="setting-desc">Every 20,000 km</div></div>
+          <span class="badge badge-warn">20000 km</span>
+        </div>
+        <div class="setting-item">
+          <div><div class="setting-label">Brake Fluid</div><div class="setting-desc">Every 2 years</div></div>
+          <span class="badge badge-bad">2 years</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Data Management</div>
+        <div class="setting-item">
+          <div>
+            <div class="setting-label">Export Backup</div>
+            <div class="setting-desc">Download all data as JSON</div>
+          </div>
+          <button class="setting-action" id="export-btn">Export</button>
+        </div>
+        <div class="setting-item">
+          <div>
+            <div class="setting-label">Import Restore</div>
+            <div class="setting-desc">Restore from JSON backup</div>
+          </div>
+          <button class="setting-action" id="import-btn">Import</button>
+          <input type="file" id="import-file" accept=".json" style="display:none">
+        </div>
+        <div class="divider"></div>
+        <div class="setting-item">
+          <div>
+            <div class="setting-label" style="color:var(--red)">Reset All Data</div>
+            <div class="setting-desc">Permanently delete everything</div>
+          </div>
+          <button class="setting-action danger" id="reset-all-btn">Reset</button>
+        </div>
+      </div>
+
+      <!-- JSONBIN CLOUD SYNC CARD -->
+      <div class="card" id="cloud-card">
+        <div class="card-title">☁️ Cloud Sync — JSONBin.io</div>
+
+        <!-- Auto-config status banner (shown after login, credentials from setup) -->
+        <div id="cloud-auto-config-banner" style="display:none;background:rgba(34,217,122,0.08);border:1px solid rgba(34,217,122,0.22);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:16px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+            <span style="font-size:16px">🔐</span>
+            <span style="font-size:13px;font-weight:700;color:var(--green)">Auto-configured from Setup</span>
+          </div>
+          <div style="font-size:12px;color:var(--text2);line-height:1.6">
+            X-Access-Key and User Data BIN ID are loaded automatically from your initial setup. No re-entry needed.
+          </div>
+          <div id="cloud-bin-status" style="font-size:11px;color:var(--text3);margin-top:6px"></div>
+        </div>
+
+        <!-- Hidden inputs kept for JS compatibility — never shown to user -->
+        <input type="password" id="cloud-access-key" style="display:none" autocomplete="off">
+        <input type="text"     id="cloud-bin-id"     style="display:none" autocomplete="off">
+
+        <!-- Upload / Download to cloud (sync app data) -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+          <button class="cloud-btn" id="cloud-upload-btn" style="background:linear-gradient(135deg,#3d9eff,#1a7de0);color:#fff;border-radius:var(--radius-sm);padding:13px 10px;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:7px;transition:var(--transition)">
+            <span>☁️</span><span>Upload</span>
+          </button>
+          <button class="cloud-btn" id="cloud-download-btn" style="background:linear-gradient(135deg,#22d97a,#12b55e);color:#fff;border-radius:var(--radius-sm);padding:13px 10px;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:7px;transition:var(--transition)">
+            <span>⬇️</span><span>Download</span>
+          </button>
+        </div>
+
+        <!-- Download Current Library Data as JSON file -->
+        <button id="cloud-dl-library-btn" style="width:100%;background:linear-gradient(135deg,rgba(168,85,247,0.18),rgba(168,85,247,0.08));border:1px solid rgba(168,85,247,0.35);border-radius:var(--radius-sm);padding:13px;font-size:13px;font-weight:700;color:var(--purple);display:flex;align-items:center;justify-content:center;gap:8px;transition:var(--transition)">
+          <span>📥</span><span>Download Current Library Data</span>
+        </button>
+
+        <!-- Status bar -->
+        <div id="cloud-status-bar" style="margin-top:12px;font-size:12px;color:var(--text3);min-height:18px;text-align:center;transition:color 0.3s"></div>
+
+        <div style="margin-top:12px;font-size:11px;color:var(--text3);line-height:1.7;border-top:1px solid var(--card-border);padding-top:10px">
+          <strong style="color:var(--text2)">How it works:</strong><br>
+          • Credentials are auto-loaded from your setup — no manual entry needed.<br>
+          • <b>Upload</b> — pushes your current local data to your User Data BIN.<br>
+          • <b>Download</b> — restores app data from your User Data BIN to this device.<br>
+          • <b>Download Current Library Data</b> — fetches the latest cloud library and saves it as a JSON file to your device.
+        </div>
+      </div>
+
+      <div style="text-align:center;padding:20px 0;color:var(--text3);font-size:12px">
+        SP125 Care v1.0 · Honda SP125 · Made with ❤️
+      </div>
+    </div>
+
+  </div><!-- /pages -->
+
+  <!-- BOTTOM NAV -->
+  <nav id="nav">
+    <button class="nav-btn active" data-page="dashboard">
+      <div class="nav-icon">🏠</div>
+      <div class="nav-label">Dashboard</div>
+      <div class="nav-indicator"></div>
+    </button>
+    <button class="nav-btn" data-page="checklist">
+      <div class="nav-icon">✅</div>
+      <div class="nav-label">Checklist</div>
+      <div class="nav-indicator"></div>
+    </button>
+    <button class="nav-btn" data-page="history">
+      <div class="nav-icon">📋</div>
+      <div class="nav-label">History</div>
+      <div class="nav-indicator"></div>
+    </button>
+    <button class="nav-btn" data-page="expenses">
+      <div class="nav-icon">💰</div>
+      <div class="nav-label">Expenses</div>
+      <div class="nav-indicator"></div>
+    </button>
+    <button class="nav-btn" data-page="settings">
+      <div class="nav-icon">⚙️</div>
+      <div class="nav-label">Settings</div>
+      <div class="nav-indicator"></div>
+    </button>
+  </nav>
+
+</div><!-- /app -->
+
+<!-- TOAST CONTAINER -->
+<div id="toast-container"></div>
+
+<!-- ADD SERVICE MODAL -->
+<div class="modal-overlay" id="modal-add">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Add Service Record</div>
+    <div class="form-group">
+      <label class="form-label">Date</label>
+      <input type="date" class="form-input" id="form-date">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Odometer (km)</label>
+        <input type="number" class="form-input" id="form-odo" placeholder="32000">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Cost (₹)</label>
+        <input type="number" class="form-input" id="form-cost" placeholder="0">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Work Done</label>
+      <textarea class="form-input" id="form-work" rows="3" placeholder="Engine oil changed, chain lubed…"></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Mechanic / Shop</label>
+      <input type="text" class="form-input" id="form-mechanic" placeholder="Honda service center">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Notes</label>
+      <textarea class="form-input" id="form-notes" rows="2" placeholder="Any additional notes…"></textarea>
+    </div>
+    <button class="btn-primary" id="save-service-btn">Save Service Record</button>
+    <button class="btn-secondary" id="cancel-add-btn">Cancel</button>
+  </div>
+</div>
+
+<!-- DETAIL VIEW MODAL -->
+<div class="modal-overlay" id="modal-detail">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="detail-title">Service Details</div>
+    <div id="detail-content"></div>
+    <button class="btn-secondary" id="close-detail-btn">Close</button>
+  </div>
+</div>
+
+<!-- EDIT ODO MODAL -->
+<div class="modal-overlay" id="modal-odo">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Update Odometer</div>
+    <div class="form-group">
+      <label class="form-label">Current Reading (km)</label>
+      <input type="number" class="form-input" id="modal-odo-input" placeholder="32000" style="font-size:24px;font-weight:700;font-family:'Syne',sans-serif;text-align:center">
+    </div>
+    <button class="btn-primary" id="save-odo-modal-btn">Update</button>
+    <button class="btn-secondary" id="cancel-odo-btn">Cancel</button>
+  </div>
+</div>
+
+<script>
+/* ════════════════════════════════════════════
+   DATA & STORAGE
+═══════════════════════════════════════════ */
+const STORAGE_KEY = 'sp125_data';
+const DEFAULT_DATA = {
+  odometer: 32000,
+  darkMode: true,
+  checklist: {},
+  history: [],
+  lastOilChange: 32000,
+  lastChainLube: 32000,
+  lastAirFilter: 32000,
+  lastForkOil: 30000,
+  lastBrakeFluidDate: new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+};
+
+let appData = {};
+
+function loadData() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    appData = raw ? { ...DEFAULT_DATA, ...JSON.parse(raw) } : { ...DEFAULT_DATA };
+  } catch { appData = { ...DEFAULT_DATA }; }
+}
+function saveData() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(appData)); } catch(e) {}
+}
+function resetData() {
+  appData = { ...DEFAULT_DATA };
+  saveData();
+}
+
+/* ════════════════════════════════════════════
+   CHECKLIST DEFINITION
+═══════════════════════════════════════════ */
+const CHECKLIST = [
+  { section: '🔧 Engine & Performance', items: [
+    { id: 'oil', label: 'Change engine oil' },
+    { id: 'spark', label: 'Spark plug inspect / replace' },
+    { id: 'throttle', label: 'Throttle body clean' },
+    { id: 'idle', label: 'Idle RPM check' },
+    { id: 'noise', label: 'Engine noise check' },
+  ]},
+  { section: '💨 Air & Fuel', items: [
+    { id: 'airfilter', label: 'Air filter clean / replace' },
+    { id: 'fuel_line', label: 'Fuel line check' },
+  ]},
+  { section: '⛓️ Chain & Drive', items: [
+    { id: 'chain_clean', label: 'Chain clean' },
+    { id: 'chain_lube', label: 'Chain lubricate' },
+    { id: 'chain_adj', label: 'Chain adjust' },
+    { id: 'sprocket', label: 'Chain sprocket inspect' },
+  ]},
+  { section: '🛑 Brakes', items: [
+    { id: 'brake_front', label: 'Front brake pads check' },
+    { id: 'brake_rear', label: 'Rear brake check' },
+    { id: 'brake_fluid', label: 'Brake fluid check' },
+    { id: 'brake_adj', label: 'Brake adjustment' },
+  ]},
+  { section: '🔩 Suspension', items: [
+    { id: 'fork_oil', label: 'Fork oil change' },
+    { id: 'fork_seal', label: 'Fork seal leakage check' },
+    { id: 'rear_shock', label: 'Rear shock absorber inspect' },
+    { id: 'steering', label: 'Steering cone set check' },
+  ]},
+  { section: '🛞 Tyres & Wheels', items: [
+    { id: 'tyre_pres', label: 'Tyre pressure check' },
+    { id: 'tread', label: 'Tread check' },
+    { id: 'wheel_bear', label: 'Wheel bearing inspect' },
+  ]},
+  { section: '⚡ Electrical', items: [
+    { id: 'battery', label: 'Battery test' },
+    { id: 'self_start', label: 'Self start check' },
+    { id: 'lights', label: 'Lights check' },
+    { id: 'horn', label: 'Horn check' },
+  ]},
+  { section: '🎛️ Controls', items: [
+    { id: 'clutch', label: 'Clutch adjust' },
+    { id: 'throttle_free', label: 'Throttle free play' },
+    { id: 'gear', label: 'Gear shifter check' },
+  ]},
+];
+
+const ALL_ITEMS = CHECKLIST.flatMap(s => s.items);
+
+/* ════════════════════════════════════════════
+   MAINTENANCE ITEMS CONFIG
+═══════════════════════════════════════════ */
+const MAINT_ITEMS = [
+  { key: 'oil', label: 'Engine Oil', emoji: '🛢️', interval: 3000, type: 'km', lastKey: 'lastOilChange', color: '#ff6b2b' },
+  { key: 'air', label: 'Air Filter', emoji: '💨', interval: 6000, type: 'km', lastKey: 'lastAirFilter', color: '#3d9eff' },
+  { key: 'chain', label: 'Chain', emoji: '⛓️', interval: 600, type: 'km', lastKey: 'lastChainLube', color: '#ffc947' },
+  { key: 'brake', label: 'Brakes', emoji: '🛑', interval: 3000, type: 'km', lastKey: 'lastChainLube', color: '#ff4d6a' },
+  { key: 'fork', label: 'Fork Oil', emoji: '🔩', interval: 20000, type: 'km', lastKey: 'lastForkOil', color: '#a855f7' },
+  { key: 'battery', label: 'Battery', emoji: '⚡', interval: 730, type: 'days', lastKey: 'lastBrakeFluidDate', color: '#22d97a' },
+  { key: 'tyres', label: 'Tyres', emoji: '🛞', interval: 1000, type: 'km', lastKey: 'lastChainLube', color: '#2dd4bf' },
+];
+
+/* ════════════════════════════════════════════
+   UTILITIES
+═══════════════════════════════════════════ */
+function fmt(n) {
+  return n >= 1000 ? n.toLocaleString('en-IN') : n;
+}
+function fmtCurrency(n) {
+  return '₹' + Number(n || 0).toLocaleString('en-IN');
+}
+function fmtDate(d) {
+  if (!d) return '—';
+  const dt = new Date(d);
+  return dt.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+function today() { return new Date().toISOString().split('T')[0]; }
+function daysBetween(d1, d2) {
+  return Math.round((new Date(d2) - new Date(d1)) / 86400000);
+}
+
+function showToast(msg, icon = '✅') {
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.innerHTML = `<span>${icon}</span><span>${msg}</span>`;
+  document.getElementById('toast-container').appendChild(el);
+  setTimeout(() => { el.classList.add('out'); setTimeout(() => el.remove(), 300); }, 2500);
+}
+
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+/* ════════════════════════════════════════════
+   NAVIGATION
+═══════════════════════════════════════════ */
+let currentPage = 'dashboard';
+const pages = {};
+const navBtns = {};
+
+function initNav() {
+  document.querySelectorAll('.nav-btn').forEach(btn => {
+    const pg = btn.dataset.page;
+    navBtns[pg] = btn;
+    btn.addEventListener('click', () => goTo(pg));
+  });
+  document.querySelectorAll('.page').forEach(pg => {
+    pages[pg.id.replace('page-','')] = pg;
+  });
+}
+
+function goTo(name) {
+  if (name === currentPage) return;
+  const prev = pages[currentPage];
+  const next = pages[name];
+  if (!next) return;
+  prev.classList.add('exit-left');
+  prev.classList.remove('active');
+  setTimeout(() => { prev.classList.remove('exit-left'); }, 320);
+  next.style.transform = 'translateX(30px)';
+  next.classList.add('active');
+  requestAnimationFrame(() => { next.style.transform = ''; });
+  navBtns[currentPage].classList.remove('active');
+  navBtns[name].classList.add('active');
+  currentPage = name;
+  renderPage(name);
+}
+
+function renderPage(name) {
+  if (name === 'dashboard') renderDashboard();
+  else if (name === 'checklist') renderChecklist();
+  else if (name === 'history') renderHistory();
+  else if (name === 'expenses') renderExpenses();
+  else if (name === 'settings') renderSettings();
+}
+
+/* ════════════════════════════════════════════
+   DASHBOARD
+═══════════════════════════════════════════ */
+function renderDashboard() {
+  // Odometer
+  document.getElementById('dash-odo').innerHTML = `${fmt(appData.odometer)} <span>km</span>`;
+  document.getElementById('odo-setting').value = appData.odometer;
+
+  // Next service
+  const oilDue = (appData.lastOilChange || 0) + 3000;
+  const kmLeft = oilDue - appData.odometer;
+  const nextEl = document.getElementById('dash-next');
+  if (kmLeft <= 0) nextEl.innerHTML = '⚠️ Engine oil overdue!';
+  else nextEl.innerHTML = `🛢️ Next oil change in ${fmt(kmLeft)} km`;
+
+  // Alerts
+  renderAlerts();
+
+  // Progress rings
+  renderProgressGrid();
+
+  // Quick stats
+  const hist = appData.history || [];
+  document.getElementById('qs-services').textContent = hist.length;
+  const total = hist.reduce((s,h) => s + (Number(h.cost)||0), 0);
+  document.getElementById('qs-spend').textContent = fmtCurrency(total);
+  const checked = Object.values(appData.checklist||{}).filter(Boolean).length;
+  const pct = ALL_ITEMS.length ? Math.round(checked / ALL_ITEMS.length * 100) : 0;
+  document.getElementById('qs-checklist').textContent = pct + '%';
+  const last = hist.sort((a,b)=>new Date(b.date)-new Date(a.date))[0];
+  document.getElementById('qs-last').textContent = last ? fmtDate(last.date) : '—';
+}
+
+function renderAlerts() {
+  const container = document.getElementById('alerts-container');
+  container.innerHTML = '';
+  const alerts = getAlerts();
+  if (alerts.urgent.length) {
+    const el = document.createElement('div');
+    el.className = 'alert-strip';
+    el.innerHTML = `<div class="icon">🚨</div><div class="text"><div class="title">Urgent Attention Needed</div><div class="items">${alerts.urgent.join('<br>')}</div></div>`;
+    container.appendChild(el);
+  }
+  if (alerts.warn.length) {
+    const el = document.createElement('div');
+    el.className = 'alert-strip warn';
+    el.innerHTML = `<div class="icon">⚠️</div><div class="text"><div class="title">Due Soon</div><div class="items">${alerts.warn.join('<br>')}</div></div>`;
+    container.appendChild(el);
+  }
+}
+
+function getAlerts() {
+  const odo = appData.odometer;
+  const urgent = [], warn = [];
+  const checks = [
+    { label: 'Engine oil', last: appData.lastOilChange || 0, interval: 3000 },
+    { label: 'Chain lube', last: appData.lastChainLube || 0, interval: 600 },
+    { label: 'Air filter', last: appData.lastAirFilter || 0, interval: 6000 },
+    { label: 'Fork oil', last: appData.lastForkOil || 0, interval: 20000 },
+  ];
+  checks.forEach(c => {
+    const due = c.last + c.interval;
+    const left = due - odo;
+    if (left <= 0) urgent.push(`${c.label} — overdue by ${fmt(Math.abs(left))} km`);
+    else if (left <= c.interval * 0.15) warn.push(`${c.label} — due in ${fmt(left)} km`);
+  });
+  // Brake fluid check by date
+  const bfDate = appData.lastBrakeFluidDate;
+  if (bfDate) {
+    const days = daysBetween(bfDate, today());
+    if (days > 730) urgent.push('Brake fluid — overdue by ' + (days-730) + ' days');
+    else if (days > 650) warn.push('Brake fluid — due soon');
+  }
+  return { urgent, warn };
+}
+
+function getProgress(item, odo) {
+  if (item.type === 'km') {
+    const last = appData[item.lastKey] || 0;
+    const used = odo - last;
+    const pct = Math.min(100, Math.round(used / item.interval * 100));
+    const left = (last + item.interval) - odo;
+    return { pct, label: left > 0 ? `${fmt(left)} km left` : 'Overdue' };
+  } else {
+    const last = appData[item.lastKey] || today();
+    const days = daysBetween(last, today());
+    const pct = Math.min(100, Math.round(days / item.interval * 100));
+    const left = item.interval - days;
+    return { pct, label: left > 0 ? `${left} days left` : 'Overdue' };
+  }
+}
+
+function renderProgressGrid() {
+  const grid = document.getElementById('progress-grid');
+  grid.innerHTML = '';
+  const odo = appData.odometer;
+  MAINT_ITEMS.forEach(item => {
+    const { pct, label } = getProgress(item, odo);
+    const circ = 175.9;
+    const offset = circ - (circ * pct / 100);
+    let color = item.color;
+    if (pct >= 85) color = '#ff4d6a';
+    else if (pct >= 65) color = '#ffc947';
+    const card = document.createElement('div');
+    card.className = 'prog-card';
+    card.innerHTML = `
+      <div class="prog-ring">
+        <svg viewBox="0 0 64 64"><circle class="track" cx="32" cy="32" r="28"/><circle class="fill" cx="32" cy="32" r="28" stroke="${color}" stroke-dasharray="${circ}" stroke-dashoffset="${circ}"/></svg>
+        <div class="pct" style="color:${color}">${pct}%</div>
+      </div>
+      <div class="prog-name">${item.emoji} ${item.label}</div>
+      <div class="prog-due ${pct>=85?'status-bad':pct>=65?'status-warn':'status-ok'}">${label}</div>
+    `;
+    grid.appendChild(card);
+    // Animate ring fill
+    setTimeout(() => {
+      const fill = card.querySelector('.fill');
+      fill.style.strokeDashoffset = offset;
+    }, 100);
+  });
+}
+
+/* ════════════════════════════════════════════
+   CHECKLIST
+═══════════════════════════════════════════ */
+function renderChecklist() {
+  const body = document.getElementById('checklist-body');
+  body.innerHTML = '';
+  const cl = appData.checklist || {};
+  let total = 0, checked = 0;
+
+  CHECKLIST.forEach(section => {
+    const sh = document.createElement('div');
+    sh.className = 'section-header';
+    sh.innerHTML = `${section.section}<div class="line"></div>`;
+    body.appendChild(sh);
+    section.items.forEach(item => {
+      const done = !!cl[item.id];
+      total++; if (done) checked++;
+      const el = document.createElement('div');
+      el.className = `check-item ${done ? 'checked' : ''}`;
+      el.dataset.id = item.id;
+      el.innerHTML = `
+        <div class="check-box">${done ? '✓' : ''}</div>
+        <div class="check-label">${item.label}</div>
+      `;
+      el.addEventListener('click', () => toggleCheck(item.id, el));
+      body.appendChild(el);
+    });
+  });
+
+  updateChecklistHeader(checked, total);
+}
+
+function toggleCheck(id, el) {
+  const cl = appData.checklist || {};
+  cl[id] = !cl[id];
+  appData.checklist = cl;
+  saveData();
+
+  el.classList.toggle('checked', cl[id]);
+  const box = el.querySelector('.check-box');
+  box.textContent = cl[id] ? '✓' : '';
+  const label = el.querySelector('.check-label');
+  if (cl[id]) { label.style.textDecoration = 'line-through'; label.style.color = 'var(--text3)'; }
+  else { label.style.textDecoration = ''; label.style.color = ''; }
+
+  const total = ALL_ITEMS.length;
+  const checked = Object.values(cl).filter(Boolean).length;
+  updateChecklistHeader(checked, total);
+
+  if (cl[id] && checked === total) showToast('All items completed! 🎉', '🎊');
+}
+
+function updateChecklistHeader(checked, total) {
+  document.getElementById('cl-count').textContent = `${checked}/${total}`;
+  const pct = total ? Math.round(checked/total*100) : 0;
+  document.getElementById('cl-bar-fill').style.width = pct + '%';
+}
+
+/* ════════════════════════════════════════════
+   HISTORY
+═══════════════════════════════════════════ */
+function renderHistory(filter = '') {
+  const list = document.getElementById('history-list');
+  let hist = (appData.history || []).slice().sort((a,b)=>new Date(b.date)-new Date(a.date));
+  if (filter) {
+    const f = filter.toLowerCase();
+    hist = hist.filter(h =>
+      (h.work||'').toLowerCase().includes(f) ||
+      (h.mechanic||'').toLowerCase().includes(f) ||
+      (h.notes||'').toLowerCase().includes(f) ||
+      String(h.odo).includes(f)
+    );
+  }
+  if (!hist.length) {
+    list.innerHTML = `<div class="empty-state"><div class="icon">📋</div><p>${filter ? 'No matching records' : 'No service records yet.\nTap + to add your first record.'}</p></div>`;
+    return;
+  }
+  list.innerHTML = '';
+  hist.forEach((h, i) => {
+    const el = document.createElement('div');
+    el.className = 'history-item';
+    el.style.animationDelay = (i * 0.04) + 's';
+    const tags = (h.work||'').split(',').slice(0,3).map(t=>t.trim()).filter(Boolean);
+    el.innerHTML = `
+      <div class="history-top">
+        <div class="history-date">${fmtDate(h.date)}</div>
+        <div class="history-cost">${fmtCurrency(h.cost)}</div>
+      </div>
+      <div class="history-odo">🛣️ ${fmt(h.odo)} km · ${h.mechanic || 'Unknown'}</div>
+      <div class="history-work">${h.work || '—'}</div>
+      ${tags.length ? `<div class="history-tags">${tags.map(t=>`<span class="tag">${t}</span>`).join('')}</div>` : ''}
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px">
+        <button class="delete-btn" data-id="${h.id}">🗑 Delete</button>
+        <span style="font-size:12px;color:var(--text3)">${h.notes ? '📝 Has notes' : ''}</span>
+      </div>
+    `;
+    el.addEventListener('click', (e) => {
+      if (e.target.closest('.delete-btn')) {
+        deleteRecord(h.id);
+      } else {
+        showDetail(h);
+      }
+    });
+    list.appendChild(el);
+  });
+}
+
+function deleteRecord(id) {
+  if (!confirm('Delete this service record?')) return;
+  appData.history = (appData.history||[]).filter(h=>h.id!==id);
+  saveData();
+  renderHistory(document.getElementById('history-search').value);
+  showToast('Record deleted', '🗑');
+}
+
+function showDetail(h) {
+  document.getElementById('detail-title').textContent = fmtDate(h.date);
+  document.getElementById('detail-content').innerHTML = `
+    <div class="detail-row"><span class="detail-key">Date</span><span class="detail-val">${fmtDate(h.date)}</span></div>
+    <div class="detail-row"><span class="detail-key">Odometer</span><span class="detail-val">${fmt(h.odo)} km</span></div>
+    <div class="detail-row"><span class="detail-key">Cost</span><span class="detail-val">${fmtCurrency(h.cost)}</span></div>
+    <div class="detail-row"><span class="detail-key">Mechanic</span><span class="detail-val">${h.mechanic||'—'}</span></div>
+    <div class="detail-row"><span class="detail-key">Work Done</span><span class="detail-val">${h.work||'—'}</span></div>
+    <div class="detail-row"><span class="detail-key">Notes</span><span class="detail-val">${h.notes||'—'}</span></div>
+  `;
+  openModal('modal-detail');
+}
+
+/* ════════════════════════════════════════════
+   EXPENSES
+═══════════════════════════════════════════ */
+function renderExpenses() {
+  const hist = appData.history || [];
+  const total = hist.reduce((s,h)=>s+(Number(h.cost)||0),0);
+  const curYear = new Date().getFullYear();
+  const yearTotal = hist.filter(h=>new Date(h.date).getFullYear()===curYear).reduce((s,h)=>s+(Number(h.cost)||0),0);
+  const sorted = hist.slice().sort((a,b)=>new Date(b.date)-new Date(a.date));
+  const last = sorted[0];
+
+  document.getElementById('exp-year').textContent = fmtCurrency(yearTotal);
+  document.getElementById('exp-total').textContent = fmtCurrency(total);
+  document.getElementById('exp-last').textContent = fmtCurrency(last?.cost);
+  document.getElementById('exp-avg').textContent = hist.length ? fmtCurrency(Math.round(total/hist.length)) : '₹0';
+
+  renderExpenseChart();
+  renderPartsList();
+  renderExpenseBreakdown();
+}
+
+function renderExpenseChart() {
+  const hist = appData.history || [];
+  const months = {};
+  const now = new Date();
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    months[key] = 0;
+  }
+  hist.forEach(h => {
+    if (!h.date) return;
+    const d = new Date(h.date);
+    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    if (key in months) months[key] += Number(h.cost)||0;
+  });
+
+  const vals = Object.values(months);
+  const keys = Object.keys(months);
+  const max = Math.max(...vals, 1);
+
+  const chart = document.getElementById('expense-chart');
+  const labels = document.getElementById('expense-chart-labels');
+  chart.innerHTML = '';
+  labels.innerHTML = '';
+
+  keys.forEach((k, i) => {
+    const v = vals[i];
+    const pct = (v / max) * 100;
+    const bar = document.createElement('div');
+    bar.style.cssText = `flex:1;background:linear-gradient(180deg,var(--accent),var(--accent2));border-radius:6px 6px 0 0;transition:height 0.8s cubic-bezier(0.4,0,0.2,1);height:0`;
+    bar.title = fmtCurrency(v);
+    chart.appendChild(bar);
+    setTimeout(() => { bar.style.height = pct + '%'; }, 50 + i*80);
+
+    const lbl = document.createElement('div');
+    lbl.style.cssText = 'flex:1;text-align:center;font-size:10px;color:var(--text3)';
+    const [y, m] = k.split('-');
+    lbl.textContent = new Date(Number(y), Number(m)-1).toLocaleString('default',{month:'short'});
+    labels.appendChild(lbl);
+  });
+}
+
+function renderPartsList() {
+  const hist = appData.history || [];
+  const pl = document.getElementById('parts-list');
+  // Extract parts from work done text
+  const partKeywords = ['oil','filter','chain','brake','fork','tyre','spark','battery','belt','pad'];
+  const parts = [];
+  hist.forEach(h => {
+    if (!h.work) return;
+    partKeywords.forEach(k => {
+      if (h.work.toLowerCase().includes(k)) {
+        parts.push({ part: k.charAt(0).toUpperCase()+k.slice(1), date: h.date, cost: h.cost });
+      }
+    });
+  });
+  if (!parts.length) { pl.innerHTML = '<li style="color:var(--text3);font-size:13px">No parts recorded yet</li>'; return; }
+  pl.innerHTML = [...new Map(parts.map(p=>[p.part,p])).values()].map(p=>`
+    <li><span>${p.part} replacement</span><span class="cost">${fmtCurrency(p.cost)}</span></li>
+  `).join('');
+}
+
+function renderExpenseBreakdown() {
+  const hist = (appData.history||[]).slice().sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,8);
+  const el = document.getElementById('expense-breakdown');
+  if (!hist.length) { el.innerHTML = '<div style="color:var(--text3);font-size:13px;padding:8px 0">No records</div>'; return; }
+  el.innerHTML = hist.map(h=>`
+    <div class="detail-row">
+      <span class="detail-key" style="font-size:13px">${fmtDate(h.date)}<br><span style="font-size:11px;color:var(--text3)">${fmt(h.odo)} km</span></span>
+      <span class="detail-val" style="color:var(--accent)">${fmtCurrency(h.cost)}</span>
+    </div>
+  `).join('');
+}
+
+/* ════════════════════════════════════════════
+   SETTINGS
+═══════════════════════════════════════════ */
+function renderSettings() {
+  document.getElementById('odo-setting').value = appData.odometer;
+  document.getElementById('dark-mode-toggle').checked = appData.darkMode !== false;
+}
+
+/* ════════════════════════════════════════════
+   THEME
+═══════════════════════════════════════════ */
+function applyTheme(dark) {
+  document.body.classList.toggle('light', !dark);
+  document.getElementById('dark-toggle').textContent = dark ? '☀️' : '🌙';
+  document.getElementById('dark-mode-toggle').checked = dark;
+  appData.darkMode = dark;
+  document.querySelector('meta[name="theme-color"]').content = dark ? '#0a0f1e' : '#f0f4ff';
+  saveData();
+}
+
+/* ════════════════════════════════════════════
+   ADD SERVICE RECORD
+═══════════════════════════════════════════ */
+function openAddModal() {
+  document.getElementById('form-date').value = today();
+  document.getElementById('form-odo').value = appData.odometer;
+  document.getElementById('form-cost').value = '';
+  document.getElementById('form-work').value = '';
+  document.getElementById('form-mechanic').value = '';
+  document.getElementById('form-notes').value = '';
+  openModal('modal-add');
+}
+
+function saveService() {
+  const date = document.getElementById('form-date').value;
+  const odo = Number(document.getElementById('form-odo').value);
+  const cost = Number(document.getElementById('form-cost').value) || 0;
+  const work = document.getElementById('form-work').value.trim();
+  const mechanic = document.getElementById('form-mechanic').value.trim();
+  const notes = document.getElementById('form-notes').value.trim();
+
+  if (!date || !odo) { showToast('Please fill date and odometer', '⚠️'); return; }
+
+  const record = { id: Date.now().toString(), date, odo, cost, work, mechanic, notes };
+  appData.history = [...(appData.history||[]), record];
+
+  // Auto-update maintenance trackers based on work done
+  const w = work.toLowerCase();
+  if (w.includes('oil')) appData.lastOilChange = odo;
+  if (w.includes('chain lube') || w.includes('lubricate')) appData.lastChainLube = odo;
+  if (w.includes('air filter')) appData.lastAirFilter = odo;
+  if (w.includes('fork oil')) appData.lastForkOil = odo;
+  if (w.includes('brake fluid')) appData.lastBrakeFluidDate = date;
+  if (odo > appData.odometer) appData.odometer = odo;
+
+  saveData();
+  closeModal('modal-add');
+  showToast('Service record saved!', '✅');
+  renderHistory();
+}
+
+/* ════════════════════════════════════════════
+   EXPORT / IMPORT
+═══════════════════════════════════════════ */
+function exportData() {
+  const json = JSON.stringify(appData, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `sp125-backup-${today()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('Backup exported!', '💾');
+}
+
+function importData(file) {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (data.odometer !== undefined) {
+        appData = { ...DEFAULT_DATA, ...data };
+        saveData();
+        renderPage(currentPage);
+        showToast('Data restored!', '✅');
+      } else throw new Error();
+    } catch { showToast('Invalid backup file', '❌'); }
+  };
+  reader.readAsText(file);
+}
+
+/* ════════════════════════════════════════════
+   PWA / SERVICE WORKER
+═══════════════════════════════════════════ */
+const SW_CODE = `
+const CACHE='sp125-v1';
+const FILES=['/'];
+self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES))));
+self.addEventListener('fetch',e=>e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request))));
+`;
+
+function registerSW() {
+  if (!('serviceWorker' in navigator)) return;
+  const blob = new Blob([SW_CODE], { type: 'application/javascript' });
+  const url = URL.createObjectURL(blob);
+  navigator.serviceWorker.register(url).catch(()=>{});
+}
+
+let deferredInstall = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredInstall = e;
+  document.getElementById('install-banner').classList.add('show');
+});
+
+/* ════════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════ */
+function init() {
+  loadData();
+  initNav();
+  applyTheme(appData.darkMode !== false);
+
+  // Loader hide
+  setTimeout(() => {
+    document.getElementById('loader').classList.add('hidden');
+  }, 1900);
+
+  // Initial render
+  renderDashboard();
+  renderChecklist();
+
+  /* ── EVENTS ── */
+
+  // Nav dark toggle
+  document.getElementById('dark-toggle').addEventListener('click', () => {
+    applyTheme(!appData.darkMode);
+    showToast(appData.darkMode ? 'Dark mode on' : 'Light mode on', appData.darkMode ? '🌙' : '☀️');
+  });
+
+  // Settings dark toggle
+  document.getElementById('dark-mode-toggle').addEventListener('change', e => {
+    applyTheme(e.target.checked);
+  });
+
+  // Notification button
+  document.getElementById('notif-btn').addEventListener('click', () => {
+    const alerts = getAlerts();
+    const total = alerts.urgent.length + alerts.warn.length;
+    showToast(total ? `${total} maintenance alert${total>1?'s':''}` : 'All systems good! ✅', total ? '🔔' : '✅');
+  });
+
+  // Edit odo button (dashboard)
+  document.getElementById('edit-odo-btn').addEventListener('click', () => {
+    document.getElementById('modal-odo-input').value = appData.odometer;
+    openModal('modal-odo');
+  });
+
+  // Save odo (modal)
+  document.getElementById('save-odo-modal-btn').addEventListener('click', () => {
+    const val = Number(document.getElementById('modal-odo-input').value);
+    if (!val || val < 0) { showToast('Enter valid odometer reading', '⚠️'); return; }
+    appData.odometer = val;
+    saveData();
+    closeModal('modal-odo');
+    renderDashboard();
+    showToast(`Odometer updated to ${fmt(val)} km`, '🛣️');
+  });
+  document.getElementById('cancel-odo-btn').addEventListener('click', () => closeModal('modal-odo'));
+
+  // FAB
+  document.getElementById('fab-add').addEventListener('click', openAddModal);
+
+  // Save service
+  document.getElementById('save-service-btn').addEventListener('click', saveService);
+  document.getElementById('cancel-add-btn').addEventListener('click', () => closeModal('modal-add'));
+
+  // Close detail
+  document.getElementById('close-detail-btn').addEventListener('click', () => closeModal('modal-detail'));
+
+  // Search
+  document.getElementById('history-search').addEventListener('input', e => renderHistory(e.target.value));
+  document.getElementById('clear-search').addEventListener('click', () => {
+    document.getElementById('history-search').value = '';
+    renderHistory();
+  });
+
+  // Checklist reset
+  document.getElementById('reset-checklist').addEventListener('click', () => {
+    if (!confirm('Reset all checklist items?')) return;
+    appData.checklist = {};
+    saveData();
+    renderChecklist();
+    showToast('Checklist reset', '🔄');
+  });
+
+  // Save odo (settings)
+  document.getElementById('save-odo-btn').addEventListener('click', () => {
+    const val = Number(document.getElementById('odo-setting').value);
+    if (!val || val < 0) { showToast('Enter valid odometer', '⚠️'); return; }
+    appData.odometer = val;
+    saveData();
+    showToast(`Saved: ${fmt(val)} km`, '✅');
+    renderDashboard();
+  });
+
+  // Export
+  document.getElementById('export-btn').addEventListener('click', exportData);
+
+  // Import
+  document.getElementById('import-btn').addEventListener('click', () => document.getElementById('import-file').click());
+  document.getElementById('import-file').addEventListener('change', e => {
+    if (e.target.files[0]) importData(e.target.files[0]);
+    e.target.value = '';
+  });
+
+  // Reset all
+  document.getElementById('reset-all-btn').addEventListener('click', () => {
+    if (!confirm('⚠️ This will permanently delete all your data. Are you sure?')) return;
+    if (!confirm('Really reset everything? This cannot be undone.')) return;
+    resetData();
+    renderPage(currentPage);
+    showToast('All data reset', '🔄');
+  });
+
+  // Install PWA
+  document.getElementById('install-btn').addEventListener('click', () => {
+    if (deferredInstall) {
+      deferredInstall.prompt();
+      deferredInstall.userChoice.then(() => {
+        deferredInstall = null;
+        document.getElementById('install-banner').classList.remove('show');
+      });
+    }
+  });
+
+  // Close modals on overlay click
+  ['modal-add','modal-detail','modal-odo'].forEach(id => {
+    document.getElementById(id).addEventListener('click', e => {
+      if (e.target.id === id) closeModal(id);
+    });
+  });
+
+  // Swipe to close modals on drag down (touch)
+  setupSwipeClose('modal-add');
+  setupSwipeClose('modal-detail');
+  setupSwipeClose('modal-odo');
+
+  // Cloud Sync
+  initCloudSync();
+
+  // PWA
+  registerSW();
+
+  // PWA Manifest inline
+  const manifest = {
+    name: 'SP125 Care',
+    short_name: 'SP125',
+    description: 'Honda SP125 Maintenance Manager',
+    start_url: '/',
+    display: 'standalone',
+    background_color: '#080d1a',
+    theme_color: '#ff6b2b',
+    icons: [{ src: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="20" fill="%23ff6b2b"/><text y=".9em" font-size="80">🏍️</text></svg>', sizes: '192x192', type: 'image/svg+xml' }]
+  };
+  const mBlob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
+  const mUrl = URL.createObjectURL(mBlob);
+  const link = document.createElement('link');
+  link.rel = 'manifest'; link.href = mUrl;
+  document.head.appendChild(link);
+}
+
+/* ════════════════════════════════════════════
+   JSONBIN.IO CLOUD SYNC
+═══════════════════════════════════════════ */
+const CRED_KEY       = 'sp125_cloud_creds';      // localStorage key for credentials
+
+/* ── Credential storage (obfuscated) ── */
+const _S = (v) => {
+  const k = 'SP125CareKey';
+  let o = '';
+  for (let i = 0; i < v.length; i++) o += String.fromCharCode(v.charCodeAt(i) ^ k.charCodeAt(i % k.length));
+  return btoa(o);
+};
+const _L = (v) => {
+  try {
+    const k = 'SP125CareKey';
+    const d = atob(v);
+    let o = '';
+    for (let i = 0; i < d.length; i++) o += String.fromCharCode(d.charCodeAt(i) ^ k.charCodeAt(i % k.length));
+    return o;
+  } catch { return ''; }
+};
+
+function saveCredentials(key, binId) {
+  const pkg = JSON.stringify({ k: _S(key), b: _S(binId) });
+  localStorage.setItem(CRED_KEY, pkg);
+}
+function loadCredentials() {
+  try {
+    const raw = localStorage.getItem(CRED_KEY);
+    if (!raw) return { key: '', binId: '' };
+    const pkg = JSON.parse(raw);
+    return { key: _L(pkg.k), binId: _L(pkg.b) };
+  } catch { return { key: '', binId: '' }; }
+}
+function clearCredentials() { localStorage.removeItem(CRED_KEY); }
+
+function getCloudCreds() {
+  // Always pull from setup config first (auto after login — no user re-entry needed)
+  const cfg = loadSetupConfig();
+  if (cfg && cfg.accessKey && cfg.dataBinId) {
+    return { key: cfg.accessKey, binId: cfg.dataBinId };
+  }
+  // Fallback: legacy saved credentials (CRED_KEY) for backwards compatibility
+  return loadCredentials();
+}
+
+function setCloudStatus(msg, color = 'var(--text3)') {
+  const el = document.getElementById('cloud-status-bar');
+  if (el) { el.textContent = msg; el.style.color = color; }
+}
+
+function setBtnLoading(btnId, loading, label, icon) {
+  const btn = document.getElementById(btnId);
+  if (!btn) return;
+  btn.disabled = loading;
+  btn.style.opacity = loading ? '0.65' : '1';
+  btn.innerHTML = loading
+    ? '<span style="display:inline-block;animation:spin 0.7s linear infinite">⏳</span><span>Please wait…</span>'
+    : '<span>' + icon + '</span><span>' + label + '</span>';
+}
+
+/* ── UPLOAD ── */
+async function cloudUpload() {
+  const { key, binId } = getCloudCreds();
+  if (!key || !binId) {
+    setCloudStatus('⚠️ Enter and save your credentials first', 'var(--yellow)');
+    showToast('Credentials required', '⚠️'); return;
+  }
+  setBtnLoading('cloud-upload-btn', true, 'Upload', '☁️');
+  setCloudStatus('Uploading to JSONBin…', 'var(--yellow)');
+  try {
+    const res = await fetch(JSONBIN_BASE + '/b/' + binId, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'X-Access-Key': key, 'X-Bin-Versioning': 'false' },
+      body: JSON.stringify(appData),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'HTTP ' + res.status);
+    setCloudStatus('✅ Data uploaded to JSONBin!', 'var(--green)');
+    showToast('Uploaded to JSONBin!', '☁️');
+  } catch (err) {
+    setCloudStatus('❌ Upload failed: ' + err.message, 'var(--red)');
+    showToast('Upload failed — check credentials', '❌');
+  } finally {
+    setBtnLoading('cloud-upload-btn', false, 'Upload', '☁️');
+  }
+}
+
+/* ── DOWNLOAD ── */
+async function cloudDownload() {
+  const { key, binId } = getCloudCreds();
+  if (!key || !binId) {
+    setCloudStatus('⚠️ Enter and save your credentials first', 'var(--yellow)');
+    showToast('Credentials required', '⚠️'); return;
+  }
+  if (!confirm('This will replace all local data with the cloud copy. Continue?')) return;
+  setBtnLoading('cloud-download-btn', true, 'Download', '⬇️');
+  setCloudStatus('Downloading from JSONBin…', 'var(--yellow)');
+  try {
+    const res = await fetch(JSONBIN_BASE + '/b/' + binId + '/latest', {
+      method: 'GET',
+      headers: { 'X-Access-Key': key },
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'HTTP ' + res.status);
+    const record = data.record;
+    if (!record || typeof record !== 'object' || record.odometer === undefined)
+      throw new Error('Invalid SP125 Care data in this bin');
+    appData = { ...DEFAULT_DATA, ...record };
+    saveData();
+    updateBinStatusLabel();
+    renderPage(currentPage);
+    setCloudStatus('✅ Data restored from JSONBin!', 'var(--green)');
+    showToast('Cloud data restored!', '✅');
+  } catch (err) {
+    setCloudStatus('❌ Download failed: ' + err.message, 'var(--red)');
+    showToast('Download failed — check credentials', '❌');
+  } finally {
+    setBtnLoading('cloud-download-btn', false, 'Download', '⬇️');
+  }
+}
+
+function updateBinStatusLabel() {
+  // Source truth: setup config (auto-loaded from initial setup screen)
+  const cfg = loadSetupConfig();
+  const banner = document.getElementById('cloud-auto-config-banner');
+  const statusEl = document.getElementById('cloud-bin-status');
+
+  if (banner) banner.style.display = 'block';
+
+  if (cfg && cfg.dataBinId && statusEl) {
+    const masked = cfg.dataBinId.slice(0, 4) + '••••••••' + cfg.dataBinId.slice(-4);
+    statusEl.textContent = '🗄️ Data BIN: ' + masked;
+    statusEl.style.color = 'var(--green)';
+  } else if (statusEl) {
+    statusEl.textContent = 'Setup not configured';
+    statusEl.style.color = 'var(--text3)';
+  }
+}
+
+function initCloudSync() {
+  // Sync credentials from setup config into the legacy CRED_KEY store
+  // so any code that still calls loadCredentials() also works
+  const cfg = loadSetupConfig();
+  if (cfg && cfg.accessKey && cfg.dataBinId) {
+    saveCredentials(cfg.accessKey, cfg.dataBinId);
+  }
+
+  // Update the auto-config banner with masked BIN ID
+  updateBinStatusLabel();
+
+  // Upload / Download (credentials resolved automatically via getCloudCreds)
+  document.getElementById('cloud-upload-btn').addEventListener('click', cloudUpload);
+  document.getElementById('cloud-download-btn').addEventListener('click', cloudDownload);
+}
+
+/* ════════════════════════════════════════════
+   END JSONBIN
+═══════════════════════════════════════════ */
+
+function setupSwipeClose(modalId) {
+  const modal = document.getElementById(modalId);
+  const inner = modal.querySelector('.modal');
+  let startY = 0, dy = 0;
+  inner.addEventListener('touchstart', e => { startY = e.touches[0].clientY; }, { passive: true });
+  inner.addEventListener('touchmove', e => {
+    dy = e.touches[0].clientY - startY;
+    if (dy > 0) inner.style.transform = `translateY(${dy}px)`;
+  }, { passive: true });
+  inner.addEventListener('touchend', () => {
+    if (dy > 80) closeModal(modalId);
+    inner.style.transform = '';
+    dy = 0;
+  });
+}
+
+/* ════════════════════════════════════════════
+   SECURITY LAYER
+═══════════════════════════════════════════ */
+
+/* ── Disable right-click ── */
+document.addEventListener('contextmenu', e => e.preventDefault());
+
+/* ── Disable text selection on sensitive areas ── */
+document.addEventListener('selectstart', e => {
+  if (e.target.closest('#cloud-card')) e.preventDefault();
+});
+
+/* ── Disable common keyboard shortcuts for DevTools ── */
+document.addEventListener('keydown', e => {
+  const k = e.key;
+  // F12, Ctrl+Shift+I/J/C/U, Ctrl+U (view source)
+  if (
+    k === 'F12' ||
+    (e.ctrlKey && e.shiftKey && ['I','i','J','j','C','c','K','k'].includes(k)) ||
+    (e.ctrlKey && ['U','u'].includes(k)) ||
+    (e.metaKey && e.altKey && ['I','i','J','j','C','c'].includes(k))
+  ) {
+    e.preventDefault();
+    e.stopPropagation();
+    return false;
+  }
+});
+
+/* ── DevTools size-change detection ── */
+(function devToolsDetect() {
+  const THRESHOLD = 160;
+  let devOpen = false;
+
+  function check() {
+    const widthDiff  = window.outerWidth  - window.innerWidth;
+    const heightDiff = window.outerHeight - window.innerHeight;
+    const suspected  = widthDiff > THRESHOLD || heightDiff > THRESHOLD;
+
+    // Debugger timing trick
+    let t = 0;
+    const before = performance.now();
+    // eslint-disable-next-line no-debugger
+    debugger;
+    const after = performance.now();
+    const debuggerOpen = (after - before) > 80;
+
+    if ((suspected || debuggerOpen) && !devOpen) {
+      devOpen = true;
+      document.getElementById('devtools-shield').classList.add('show');
+    } else if (!suspected && !debuggerOpen && devOpen) {
+      devOpen = false;
+      document.getElementById('devtools-shield').classList.remove('show');
+    }
+  }
+
+  setInterval(check, 1000);
+  window.addEventListener('resize', check);
+})();
+
+/* ── Protect credential inputs: clear clipboard on copy attempt ── */
+document.addEventListener('copy', e => {
+  const active = document.activeElement;
+  if (active && (active.id === 'cloud-access-key' || active.id === 'setup-access-key' || active.id === 'asettings-key')) {
+    e.clipboardData.setData('text/plain', '');
+    e.preventDefault();
+    showToast('Copying the key is disabled', '🔒');
+  }
+});
+
+/* ── Disable copy/cut globally ── */
+document.addEventListener('cut', e => {
+  const active = document.activeElement;
+  if (active && active.closest('#cloud-card, #setup-modal-overlay, #auth-settings-overlay')) e.preventDefault();
+});
+
+/* ════════════════════════════════════════════
+   AUTH SYSTEM — STORAGE KEYS & HELPERS
+═══════════════════════════════════════════ */
+const SETUP_KEY     = 'sp125_setup_config';   // Initial setup config
+const AUTH_SESSION  = 'sp125_auth_session';    // Logged in user session
+const JSONBIN_BASE  = 'https://api.jsonbin.io/v3';
+
+/* ── Simple XOR obfuscation (same pattern as existing cred storage) ── */
+const _XE = (v) => {
+  const k = 'SP125AuthKey2024';
+  let o = '';
+  for (let i = 0; i < v.length; i++) o += String.fromCharCode(v.charCodeAt(i) ^ k.charCodeAt(i % k.length));
+  return btoa(o);
+};
+const _XD = (v) => {
+  try {
+    const k = 'SP125AuthKey2024';
+    const d = atob(v);
+    let o = '';
+    for (let i = 0; i < d.length; i++) o += String.fromCharCode(d.charCodeAt(i) ^ k.charCodeAt(i % k.length));
+    return o;
+  } catch { return ''; }
+};
+
+/* ── Simple password hash (SHA-256 via Web Crypto API) ── */
+async function hashPassword(password) {
+  const msgBuffer = new TextEncoder().encode(password);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+/* ── Save/load setup config ── */
+function saveSetupConfig(accessKey, authBinId, dataBinId) {
+  const pkg = {
+    k: _XE(accessKey),
+    ab: _XE(authBinId),
+    db: _XE(dataBinId)
+  };
+  localStorage.setItem(SETUP_KEY, JSON.stringify(pkg));
+}
+
+function loadSetupConfig() {
+  try {
+    const raw = localStorage.getItem(SETUP_KEY);
+    if (!raw) return null;
+    const pkg = JSON.parse(raw);
+    return {
+      accessKey: _XD(pkg.k),
+      authBinId: _XD(pkg.ab),
+      dataBinId: _XD(pkg.db)
+    };
+  } catch { return null; }
+}
+
+function isSetupComplete() {
+  const cfg = loadSetupConfig();
+  return !!(cfg && cfg.accessKey && cfg.authBinId && cfg.dataBinId);
+}
+
+/* ── Session ── */
+function saveSession(user) {
+  try {
+    sessionStorage.setItem(AUTH_SESSION, JSON.stringify({
+      username: user.username,
+      name: user.name,
+      email: user.email,
+      loggedAt: new Date().toISOString()
+    }));
+  } catch(e) {}
+}
+
+function loadSession() {
+  try {
+    const raw = sessionStorage.getItem(AUTH_SESSION);
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+
+function clearSession() {
+  sessionStorage.removeItem(AUTH_SESSION);
+}
+
+/* ── JSONBin helpers for Auth BIN ── */
+async function fetchAuthBin() {
+  const cfg = loadSetupConfig();
+  if (!cfg) throw new Error('Setup not configured');
+  const res = await fetch(`${JSONBIN_BASE}/b/${cfg.authBinId}/latest`, {
+    headers: { 'X-Access-Key': cfg.accessKey }
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || 'HTTP ' + res.status);
+  return data.record || { users: [] };
+}
+
+async function updateAuthBin(record) {
+  const cfg = loadSetupConfig();
+  if (!cfg) throw new Error('Setup not configured');
+  const res = await fetch(`${JSONBIN_BASE}/b/${cfg.authBinId}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Access-Key': cfg.accessKey,
+      'X-Bin-Versioning': 'false'
+    },
+    body: JSON.stringify(record)
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || 'HTTP ' + res.status);
+  return data;
+}
+
+/* ════════════════════════════════════════════
+   PASSWORD VALIDATION
+═══════════════════════════════════════════ */
+const WEAK_PATTERNS = ['abcd','abcde','1234','0000','qwerty','aaaa','1111','2222','3333','4444','5555','6666','7777','8888','9999','pass','password','admin','letmein','welcome','monkey','dragon','123456'];
+
+function checkPasswordStrength(pw) {
+  if (!pw) return { score: 0, label: 'Enter a password', color: 'var(--text3)' };
+
+  const checks = {
+    length:   pw.length >= 8,
+    upper:    /[A-Z]/.test(pw),
+    lower:    /[a-z]/.test(pw),
+    digit:    /[0-9]/.test(pw),
+    special:  /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/.test(pw)
+  };
+
+  // Check for weak/sequential patterns
+  const lcPw = pw.toLowerCase();
+  const hasWeakPattern = WEAK_PATTERNS.some(p => lcPw.includes(p));
+  const hasSequential = /(.)\1{3,}/.test(pw); // 4+ same chars
+  const hasAscSeq = /(?:abcde|bcdef|cdefg|defgh|efghi|fghij|01234|12345|23456|34567|45678|56789)/i.test(pw);
+
+  const passed = Object.values(checks).filter(Boolean).length;
+
+  if (hasWeakPattern || hasSequential || hasAscSeq) {
+    return { score: 1, label: '⚠️ Weak pattern detected', color: 'var(--red)', valid: false, checks };
+  }
+
+  if (passed <= 2) return { score: 1, label: '❌ Very Weak', color: 'var(--red)', valid: false, checks };
+  if (passed === 3) return { score: 2, label: '⚠️ Weak', color: 'var(--yellow)', valid: false, checks };
+  if (passed === 4) return { score: 3, label: '✅ Strong', color: 'var(--green)', valid: true, checks };
+  return { score: 4, label: '🔥 Very Strong', color: '#00e5a0', valid: true, checks };
+}
+
+function isPasswordValid(pw) {
+  const r = checkPasswordStrength(pw);
+  return r.valid === true && r.score >= 3 && r.checks.length && r.checks.upper && r.checks.lower && r.checks.digit && r.checks.special;
+}
+
+/* ════════════════════════════════════════════
+   AUTH UI HELPERS
+═══════════════════════════════════════════ */
+function togglePwVis(inputId, btn) {
+  const inp = document.getElementById(inputId);
+  if (!inp) return;
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+  btn.textContent = inp.type === 'password' ? '👁' : '🙈';
+}
+
+function showFieldErr(id, msg) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (msg) el.textContent = msg;
+  el.classList.add('show');
+}
+
+function hideFieldErr(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.remove('show');
+}
+
+function setAuthBtnLoading(btnId, loading) {
+  const btn = document.getElementById(btnId);
+  if (!btn) return;
+  btn.disabled = loading;
+  btn.classList.toggle('loading', loading);
+}
+
+function switchAuthTab(tab) {
+  const loginForm = document.getElementById('auth-form-login');
+  const signupForm = document.getElementById('auth-form-signup');
+  const tabLogin = document.getElementById('tab-login');
+  const tabSignup = document.getElementById('tab-signup');
+
+  if (tab === 'login') {
+    loginForm.style.display = 'block';
+    signupForm.style.display = 'none';
+    tabLogin.classList.add('active');
+    tabSignup.classList.remove('active');
+    setTimeout(() => { loginForm.style.opacity = '1'; loginForm.style.transform = 'none'; }, 10);
+  } else {
+    loginForm.style.display = 'none';
+    signupForm.style.display = 'block';
+    tabLogin.classList.remove('active');
+    tabSignup.classList.add('active');
+    setTimeout(() => { signupForm.style.opacity = '1'; signupForm.style.transform = 'none'; }, 10);
+  }
+}
+
+/* ════════════════════════════════════════════
+   SETUP MODAL
+═══════════════════════════════════════════ */
+function openSetupModal() {
+  const cfg = loadSetupConfig();
+  if (cfg) {
+    // Pre-fill masked
+    document.getElementById('setup-access-key').value = cfg.accessKey || '';
+    document.getElementById('setup-auth-bin').value = cfg.authBinId || '';
+    document.getElementById('setup-data-bin').value = cfg.dataBinId || '';
+  }
+  document.getElementById('setup-modal-overlay').classList.add('open');
+}
+
+function closeSetupModal() {
+  document.getElementById('setup-modal-overlay').classList.remove('open');
+}
+
+async function saveSetup() {
+  const key = (document.getElementById('setup-access-key').value || '').trim();
+  const authBin = (document.getElementById('setup-auth-bin').value || '').trim();
+  const dataBin = (document.getElementById('setup-data-bin').value || '').trim();
+
+  let hasErr = false;
+  if (!key) { showFieldErr('setup-key-err'); hasErr = true; } else hideFieldErr('setup-key-err');
+  if (!authBin) { showFieldErr('setup-authbin-err'); hasErr = true; } else hideFieldErr('setup-authbin-err');
+  if (!dataBin) { showFieldErr('setup-databin-err'); hasErr = true; } else hideFieldErr('setup-databin-err');
+  if (hasErr) return;
+
+  setAuthBtnLoading('setup-save-btn', true);
+  try {
+    // Validate by fetching auth bin
+    const res = await fetch(`${JSONBIN_BASE}/b/${authBin}/latest`, {
+      headers: { 'X-Access-Key': key }
+    });
+    if (!res.ok) {
+      // Try creating initial structure if bin is empty/new
+      if (res.status === 404 || res.status === 400) {
+        // Initialize auth bin
+        const initRes = await fetch(`${JSONBIN_BASE}/b/${authBin}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'X-Access-Key': key, 'X-Bin-Versioning': 'false' },
+          body: JSON.stringify({ users: [] })
+        });
+        if (!initRes.ok) throw new Error('Could not access Auth BIN. Check your credentials.');
+      } else {
+        throw new Error('Invalid credentials or BIN ID. Check and try again.');
+      }
+    }
+    saveSetupConfig(key, authBin, dataBin);
+    closeSetupModal();
+    showToast('Setup saved! You can now login.', '✅');
+    // Ensure auth screen is visible
+    document.getElementById('auth-screen').classList.remove('hidden');
+  } catch(err) {
+    showToast('Setup error: ' + err.message, '❌');
+  } finally {
+    setAuthBtnLoading('setup-save-btn', false);
+  }
+}
+
+/* ════════════════════════════════════════════
+   AUTH SETTINGS MODAL (on login screen)
+═══════════════════════════════════════════ */
+function openAuthSettings() {
+  const cfg = loadSetupConfig();
+  if (cfg) {
+    document.getElementById('asettings-key').value = cfg.accessKey || '';
+    document.getElementById('asettings-auth-bin').value = cfg.authBinId || '';
+    document.getElementById('asettings-data-bin').value = cfg.dataBinId || '';
+  }
+  document.getElementById('auth-settings-overlay').classList.add('open');
+}
+
+function closeAuthSettings() {
+  document.getElementById('auth-settings-overlay').classList.remove('open');
+}
+
+async function saveAuthSettings() {
+  const key = (document.getElementById('asettings-key').value || '').trim();
+  const authBin = (document.getElementById('asettings-auth-bin').value || '').trim();
+  const dataBin = (document.getElementById('asettings-data-bin').value || '').trim();
+
+  if (!key || !authBin || !dataBin) { showToast('All fields are required', '⚠️'); return; }
+
+  setAuthBtnLoading('asettings-save-btn', true);
+  try {
+    saveSetupConfig(key, authBin, dataBin);
+    closeAuthSettings();
+    showToast('Settings updated!', '✅');
+  } catch(err) {
+    showToast('Error: ' + err.message, '❌');
+  } finally {
+    setAuthBtnLoading('asettings-save-btn', false);
+  }
+}
+
+/* ════════════════════════════════════════════
+   LOGIN
+═══════════════════════════════════════════ */
+async function doLogin() {
+  if (!isSetupComplete()) { openSetupModal(); return; }
+
+  const username = (document.getElementById('login-username').value || '').trim();
+  const password = (document.getElementById('login-password').value || '').trim();
+
+  let hasErr = false;
+  if (!username) { showFieldErr('login-user-err', 'Username is required'); hasErr = true; } else hideFieldErr('login-user-err');
+  if (!password) { showFieldErr('login-pw-err', 'Password is required'); hasErr = true; } else hideFieldErr('login-pw-err');
+  if (hasErr) return;
+
+  setAuthBtnLoading('login-btn', true);
+  try {
+    const record = await fetchAuthBin();
+    const users = record.users || [];
+    const hashed = await hashPassword(password);
+    const found = users.find(u => u.username.toLowerCase() === username.toLowerCase() && u.passwordHash === hashed);
+
+    if (!found) {
+      showFieldErr('login-user-err', 'Invalid username or password');
+      showFieldErr('login-pw-err', 'Invalid username or password');
+      showToast('Login failed — check credentials', '❌');
+      return;
+    }
+
+    // Login success
+    saveSession(found);
+
+    // Auto-load user data BIN creds into cloud sync (no re-entry needed)
+    const cfg = loadSetupConfig();
+    if (cfg) {
+      saveCredentials(cfg.accessKey, cfg.dataBinId);
+    }
+
+    showToast(`Welcome back, ${found.name}! 🎉`, '✅');
+    enterApp(found);
+  } catch(err) {
+    showToast('Login error: ' + err.message, '❌');
+  } finally {
+    setAuthBtnLoading('login-btn', false);
+  }
+}
+
+/* ════════════════════════════════════════════
+   SIGNUP
+═══════════════════════════════════════════ */
+async function doSignup() {
+  if (!isSetupComplete()) { openSetupModal(); return; }
+
+  const name     = (document.getElementById('signup-name').value || '').trim();
+  const email    = (document.getElementById('signup-email').value || '').trim();
+  const username = (document.getElementById('signup-username').value || '').trim();
+  const password = (document.getElementById('signup-password').value || '').trim();
+
+  let hasErr = false;
+
+  if (!name) { showFieldErr('signup-name-err', 'Full name is required'); hasErr = true; } else hideFieldErr('signup-name-err');
+
+  const emailRx = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!email || !emailRx.test(email)) { showFieldErr('signup-email-err', 'Valid email is required'); hasErr = true; } else hideFieldErr('signup-email-err');
+
+  if (!username || username.length < 3) { showFieldErr('signup-user-err', 'Username must be at least 3 characters'); hasErr = true; } else hideFieldErr('signup-user-err');
+
+  if (!isPasswordValid(password)) {
+    showFieldErr('signup-pw-err', 'Password must have 8+ chars, uppercase, lowercase, digit & special character, and avoid weak patterns');
+    hasErr = true;
+  } else hideFieldErr('signup-pw-err');
+
+  // Password same as email
+  if (password.toLowerCase() === email.toLowerCase()) {
+    showFieldErr('signup-pw-err', 'Password cannot be the same as your email');
+    hasErr = true;
+  }
+
+  if (hasErr) return;
+
+  setAuthBtnLoading('signup-btn', true);
+  try {
+    const record = await fetchAuthBin();
+    const users = record.users || [];
+
+    // Check duplicates
+    const dupUser = users.find(u => u.username.toLowerCase() === username.toLowerCase());
+    if (dupUser) { showFieldErr('signup-user-err', 'Username already taken'); setAuthBtnLoading('signup-btn', false); return; }
+
+    const dupEmail = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+    if (dupEmail) { showFieldErr('signup-email-err', 'Email already registered'); setAuthBtnLoading('signup-btn', false); return; }
+
+    // Hash password
+    const passwordHash = await hashPassword(password);
+
+    const newUser = {
+      id: 'u_' + Date.now(),
+      name,
+      email,
+      username,
+      passwordHash,
+      createdAt: new Date().toISOString()
+    };
+
+    users.push(newUser);
+    await updateAuthBin({ ...record, users });
+
+    // Auto-login after signup
+    saveSession(newUser);
+    const cfg = loadSetupConfig();
+    if (cfg) saveCredentials(cfg.accessKey, cfg.dataBinId);
+
+    showToast(`Account created! Welcome, ${name}! 🎉`, '✅');
+    enterApp(newUser);
+  } catch(err) {
+    showToast('Signup error: ' + err.message, '❌');
+  } finally {
+    setAuthBtnLoading('signup-btn', false);
+  }
+}
+
+/* ════════════════════════════════════════════
+   ENTER / EXIT APP
+═══════════════════════════════════════════ */
+function enterApp(user) {
+  // Update header title
+  const headerTitle = document.getElementById('header').querySelector('.header-title');
+  if (headerTitle) headerTitle.textContent = 'SP125 Care';
+
+  // Sync setup config into legacy CRED_KEY and refresh auto-config banner
+  const cfg = loadSetupConfig();
+  if (cfg && cfg.accessKey && cfg.dataBinId) {
+    saveCredentials(cfg.accessKey, cfg.dataBinId);
+  }
+  updateBinStatusLabel();
+
+  // Hide auth screen
+  const authScreen = document.getElementById('auth-screen');
+  authScreen.classList.add('hidden');
+  setTimeout(() => { authScreen.style.display = 'none'; }, 520);
+}
+
+function doLogout() {
+  if (!confirm('Logout from SP125 Care?')) return;
+  clearSession();
+  // Reset cloud sync fields (don't expose keys)
+  const ki = document.getElementById('cloud-access-key');
+  const bi = document.getElementById('cloud-bin-id');
+  if (ki) ki.value = '';
+  if (bi) bi.value = '';
+  // Show auth screen
+  const authScreen = document.getElementById('auth-screen');
+  authScreen.style.display = '';
+  requestAnimationFrame(() => {
+    authScreen.classList.remove('hidden');
+  });
+  // Reset login form
+  document.getElementById('login-username').value = '';
+  document.getElementById('login-password').value = '';
+  switchAuthTab('login');
+  showToast('Logged out', '👋');
+}
+
+/* ════════════════════════════════════════════
+   DOWNLOAD LIBRARY JSON (from User Data BIN)
+═══════════════════════════════════════════ */
+async function downloadLibraryJSON() {
+  const btn = document.getElementById('cloud-dl-library-btn');
+
+  // Resolve credentials: always from setup config (auto after login)
+  const { key, binId } = getCloudCreds();
+  if (!key || !binId) {
+    showToast('Setup not configured — complete initial setup first', '⚠️');
+    setCloudStatus('⚠️ Setup not configured', 'var(--yellow)');
+    return;
+  }
+
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span style="display:inline-block;animation:spin 0.7s linear infinite">⏳</span><span>Fetching library…</span>';
+  }
+  setCloudStatus('Fetching current library data from JSONBin…', 'var(--yellow)');
+
+  try {
+    const res = await fetch(`${JSONBIN_BASE}/b/${binId}/latest`, {
+      headers: { 'X-Access-Key': key }
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'HTTP ' + res.status);
+
+    const json = JSON.stringify(data.record, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `sp125-cloud-library-${today()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    showToast('Library data downloaded!', '📥');
+    setCloudStatus('✅ Library JSON saved to device', 'var(--green)');
+  } catch(err) {
+    showToast('Download failed: ' + err.message, '❌');
+    setCloudStatus('❌ Download failed: ' + err.message, 'var(--red)');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<span>📥</span><span>Download Current Library Data</span>';
+    }
+  }
+}
+
+/* ════════════════════════════════════════════
+   INIT AUTH SYSTEM
+═══════════════════════════════════════════ */
+function initAuth() {
+  // Check if setup is complete — if not, force setup modal
+  if (!isSetupComplete()) {
+    openSetupModal();
+  }
+
+  // Check if already logged in (session exists)
+  const session = loadSession();
+  if (session && isSetupComplete()) {
+    // Auto-load cloud creds
+    const cfg = loadSetupConfig();
+    if (cfg) saveCredentials(cfg.accessKey, cfg.dataBinId);
+    enterApp(session);
+    return;
+  }
+
+  // Wire up setup modal save button
+  document.getElementById('setup-save-btn').addEventListener('click', saveSetup);
+
+  // Wire up auth settings save
+  document.getElementById('asettings-save-btn').addEventListener('click', saveAuthSettings);
+
+  // Wire up login
+  document.getElementById('login-btn').addEventListener('click', doLogin);
+  document.getElementById('login-password').addEventListener('keypress', e => { if (e.key === 'Enter') doLogin(); });
+
+  // Wire up signup
+  document.getElementById('signup-btn').addEventListener('click', doSignup);
+
+  // Password strength meter
+  document.getElementById('signup-password').addEventListener('input', e => {
+    const pw = e.target.value;
+    const result = checkPasswordStrength(pw);
+    const fill = document.getElementById('pw-strength-fill');
+    const text = document.getElementById('pw-strength-text');
+    const pct = [0, 25, 50, 75, 100][result.score] || 0;
+    fill.style.width = pct + '%';
+    fill.style.background = result.color;
+    text.textContent = result.label;
+    text.style.color = result.color;
+    if (pw) hideFieldErr('signup-pw-err');
+  });
+
+  // Close overlays on outside click
+  document.getElementById('auth-settings-overlay').addEventListener('click', e => {
+    if (e.target.id === 'auth-settings-overlay') closeAuthSettings();
+  });
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  initAuth();
+  init();
+
+  // Logout button
+  document.getElementById('logout-btn').addEventListener('click', doLogout);
+
+  // Download library button (wired here in addition to initCloudSync for safety)
+  const dlLibBtn = document.getElementById('cloud-dl-library-btn');
+  if (dlLibBtn) dlLibBtn.addEventListener('click', downloadLibraryJSON);
+});
+</script>
+</body>
+</html>
