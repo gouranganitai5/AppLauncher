@@ -1,0 +1,1087 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Universal GitHub Gist Sync Module</title>
+  <style>
+    /* ==========================================================================
+       Module Scoped Styles & Glowing Indicator States
+       ========================================================================== */
+    :root {
+      --gh-sync-bg: #0f172a;
+      --gh-sync-surface: #1e293b;
+      --gh-sync-border: #334155;
+      --gh-sync-text: #f8fafc;
+      --gh-sync-text-muted: #94a3b8;
+      --gh-sync-primary: #3b82f6;
+      --gh-sync-primary-hover: #2563eb;
+      --gh-sync-danger: #ef4444;
+      --gh-sync-danger-hover: #dc2626;
+
+      --gh-color-disconnected: #ef4444;
+      --gh-color-connecting: #f59e0b;
+      --gh-color-connected: #10b981;
+      --gh-color-error: #dc2626;
+      --gh-color-locked: #3b82f6;
+    }
+
+    /* Floating Status Indicator Badge */
+    .gh-sync-badge {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 14px;
+      background: rgba(15, 23, 42, 0.9);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--gh-sync-border);
+      border-radius: 9999px;
+      color: var(--gh-sync-text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      user-select: none;
+      z-index: 10000;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+      transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+
+    .gh-sync-badge:hover {
+      transform: translateY(-2px);
+      border-color: #475569;
+    }
+
+    .gh-sync-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      position: relative;
+      transition: background-color 0.3s ease;
+    }
+
+    /* Glow Keyframe Animations */
+    @keyframes gh-pulse-red {
+      0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+      70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+    }
+
+    @keyframes gh-pulse-yellow {
+      0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7); }
+      70% { box-shadow: 0 0 0 10px rgba(245, 158, 11, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+    }
+
+    @keyframes gh-pulse-green {
+      0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+      70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+    }
+
+    @keyframes gh-pulse-blue {
+      0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); }
+      70% { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+    }
+
+    .gh-sync-badge[data-state="DISCONNECTED"] .gh-sync-dot {
+      background-color: var(--gh-color-disconnected);
+      animation: gh-pulse-red 2s infinite;
+    }
+
+    .gh-sync-badge[data-state="CONNECTING"] .gh-sync-dot {
+      background-color: var(--gh-color-connecting);
+      animation: gh-pulse-yellow 1.5s infinite;
+    }
+
+    .gh-sync-badge[data-state="CONNECTED"] .gh-sync-dot {
+      background-color: var(--gh-color-connected);
+      animation: gh-pulse-green 2.5s infinite;
+    }
+
+    .gh-sync-badge[data-state="LOCKED"] .gh-sync-dot {
+      background-color: var(--gh-color-locked);
+      animation: gh-pulse-blue 2s infinite;
+    }
+
+    .gh-sync-badge[data-state="ERROR"] .gh-sync-dot {
+      background-color: var(--gh-color-error);
+      animation: gh-pulse-red 1s infinite;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .gh-sync-badge[data-state="ERROR"] .gh-sync-dot::after {
+      content: "✕";
+      font-size: 8px;
+      color: #fff;
+      font-weight: 900;
+    }
+
+    /* Modal Overlay & Framework */
+    .gh-sync-modal-overlay {
+      position: fixed;
+      inset: 0;
+      background-color: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10001;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease-in-out;
+    }
+
+    .gh-sync-modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .gh-sync-modal {
+      background: var(--gh-sync-surface);
+      border: 1px solid var(--gh-sync-border);
+      border-radius: 14px;
+      padding: 24px;
+      width: 90%;
+      max-width: 440px;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.6);
+      color: var(--gh-sync-text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      transform: scale(0.95);
+      transition: transform 0.2s ease-in-out;
+    }
+
+    .gh-sync-modal-overlay.active .gh-sync-modal {
+      transform: scale(1);
+    }
+
+    .gh-sync-modal h3 {
+      margin: 0 0 8px 0;
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .gh-sync-modal p {
+      color: var(--gh-sync-text-muted);
+      font-size: 13px;
+      margin: 0 0 16px 0;
+      line-height: 1.5;
+    }
+
+    .gh-sync-form-group {
+      margin-bottom: 14px;
+      text-align: left;
+    }
+
+    .gh-sync-form-group label {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--gh-sync-text-muted);
+      margin-bottom: 6px;
+    }
+
+    .gh-sync-input {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 10px 12px;
+      background: #090d16;
+      border: 1px solid var(--gh-sync-border);
+      border-radius: 8px;
+      color: var(--gh-sync-text);
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s ease;
+    }
+
+    .gh-sync-input:focus {
+      border-color: var(--gh-sync-primary);
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
+    }
+
+    .gh-sync-btn-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+      justify-content: flex-end;
+    }
+
+    .gh-sync-btn {
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      outline: none;
+      transition: background-color 0.2s ease;
+    }
+
+    .gh-sync-btn-primary {
+      background-color: var(--gh-sync-primary);
+      color: #ffffff;
+    }
+    .gh-sync-btn-primary:hover { background-color: var(--gh-sync-primary-hover); }
+
+    .gh-sync-btn-secondary {
+      background: transparent;
+      border: 1px solid var(--gh-sync-border);
+      color: var(--gh-sync-text-muted);
+    }
+    .gh-sync-btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--gh-sync-text);
+    }
+
+    .gh-sync-btn-danger {
+      background-color: var(--gh-sync-danger);
+      color: #ffffff;
+    }
+    .gh-sync-btn-danger:hover { background-color: var(--gh-sync-danger-hover); }
+
+    .gh-sync-code-box {
+      background: #090d16;
+      border: 1px dashed var(--gh-sync-border);
+      padding: 10px;
+      border-radius: 6px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 13px;
+      word-break: break-all;
+      color: #38bdf8;
+      margin: 12px 0;
+    }
+
+    /* Page Demo Sandbox Styling */
+    body {
+      margin: 0;
+      padding: 40px 20px;
+      background: #0b0f19;
+      color: #e2e8f0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      display: flex;
+      justify-content: center;
+    }
+
+    .sandbox-card {
+      max-width: 740px;
+      width: 100%;
+      background: #111827;
+      border: 1px solid #1f2937;
+      border-radius: 12px;
+      padding: 32px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+    }
+
+    h1 {
+      font-size: 22px;
+      margin: 0 0 6px 0;
+    }
+
+    p.subtitle {
+      color: #9ca3af;
+      margin-bottom: 24px;
+      font-size: 14px;
+    }
+
+    .action-panel {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .sandbox-textarea {
+      width: 100%;
+      height: 200px;
+      background: #030712;
+      border: 1px solid #374151;
+      border-radius: 8px;
+      color: #f3f4f6;
+      padding: 14px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 14px;
+      box-sizing: border-box;
+      resize: vertical;
+      outline: none;
+      margin-bottom: 14px;
+    }
+
+    .sandbox-textarea:focus {
+      border-color: #3b82f6;
+    }
+
+    .event-log {
+      background: #030712;
+      border: 1px solid #1f2937;
+      border-radius: 8px;
+      padding: 12px;
+      font-family: monospace;
+      font-size: 12px;
+      color: #10b981;
+      height: 100px;
+      overflow-y: auto;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Demo Sandbox Workspace -->
+  <div class="sandbox-card">
+    <h1>Universal GitHub Encrypted Sync</h1>
+    <p class="subtitle">Client-Side AES-GCM (256-bit) &bull; Zero Plaintext Persistence &bull; GitHub Secret Gist</p>
+
+    <div class="action-panel">
+      <button class="gh-sync-btn gh-sync-btn-primary" id="demo-btn-upload">Commit / Upload (Prompt)</button>
+      <button class="gh-sync-btn gh-sync-btn-secondary" id="demo-btn-download">Pull / Download</button>
+      <button class="gh-sync-btn gh-sync-btn-secondary" id="demo-btn-disconnect">Disconnect (Purge RAM)</button>
+      <button class="gh-sync-btn gh-sync-btn-secondary" id="demo-btn-purge" style="color: #ef4444;">Reset Local Profile</button>
+    </div>
+
+    <textarea class="sandbox-textarea" id="demo-editor" placeholder="Write or sync your encrypted data payload here..."></textarea>
+
+    <div class="event-log" id="demo-log-window">System initialized. Awaiting user interaction...</div>
+  </div>
+
+  <!-- Script Module Logic -->
+  <script>
+    /**
+     * Universal GitHub Gist Sync Module
+     * Zero plaintext persistence (Web Crypto API + IndexedDB).
+     * Zero-knowledge remote encryption for Gist sync.
+     */
+    class GitHubSyncModule {
+      constructor() {
+        // Volatile RAM Session Context - Overwritten & Purged on Disconnect
+        this.session = {
+          token: null,
+          gistId: null,
+          cryptoKey: null,
+        };
+
+        this.state = 'DISCONNECTED'; // DISCONNECTED, CONNECTING, CONNECTED, ERROR, LOCKED
+        this.dbName = 'UniversalGistSyncDB';
+        this.storeName = 'auth_profile';
+        this.listeners = new Map();
+        this.uiInitialized = false;
+
+        // Remote file name inside the Gist
+        this.syncFileName = 'secure_sync_store.json.enc';
+      }
+
+      /* -------------------------------------------------------------------------
+       * Event Emitter Pattern
+       * ------------------------------------------------------------------------- */
+      on(eventName, callback) {
+        if (!this.listeners.has(eventName)) {
+          this.listeners.set(eventName, []);
+        }
+        this.listeners.get(eventName).push(callback);
+      }
+
+      emit(eventName, data) {
+        if (this.listeners.has(eventName)) {
+          this.listeners.get(eventName).forEach((cb) => {
+            try {
+              cb(data);
+            } catch (e) {
+              console.error(`Error in event listener for ${eventName}:`, e);
+            }
+          });
+        }
+      }
+
+      setState(newState, meta = null) {
+        this.state = newState;
+        this.updateBadgeUI();
+        this.emit('stateChange', { state: newState, meta });
+      }
+
+      /* -------------------------------------------------------------------------
+       * Web Crypto API (PBKDF2 / AES-GCM 256)
+       * ------------------------------------------------------------------------- */
+      async _deriveKey(passphrase, saltBuffer) {
+        const enc = new TextEncoder();
+        const keyMaterial = await crypto.subtle.importKey(
+          'raw',
+          enc.encode(passphrase),
+          { name: 'PBKDF2' },
+          false,
+          ['deriveKey']
+        );
+
+        return crypto.subtle.deriveKey(
+          {
+            name: 'PBKDF2',
+            salt: saltBuffer,
+            iterations: 100000,
+            hash: 'SHA-256',
+          },
+          keyMaterial,
+          { name: 'AES-GCM', length: 256 },
+          false,
+          ['encrypt', 'decrypt']
+        );
+      }
+
+      async _encryptText(plaintext, cryptoKey) {
+        const iv = crypto.getRandomValues(new Uint8Array(12));
+        const encoded = new TextEncoder().encode(plaintext);
+        const ciphertext = await crypto.subtle.encrypt(
+          { name: 'AES-GCM', iv },
+          cryptoKey,
+          encoded
+        );
+
+        return {
+          iv: Array.from(iv),
+          ciphertext: Array.from(new Uint8Array(ciphertext)),
+        };
+      }
+
+      async _decryptText(cipherObj, cryptoKey) {
+        const iv = new Uint8Array(cipherObj.iv);
+        const data = new Uint8Array(cipherObj.ciphertext);
+        const decrypted = await crypto.subtle.decrypt(
+          { name: 'AES-GCM', iv },
+          cryptoKey,
+          data
+        );
+
+        return new TextDecoder().decode(decrypted);
+      }
+
+      /* -------------------------------------------------------------------------
+       * IndexedDB Storage Engine (Encrypted Vault)
+       * ------------------------------------------------------------------------- */
+      _openDB() {
+        return new Promise((resolve, reject) => {
+          const req = indexedDB.open(this.dbName, 1);
+          req.onupgradeneeded = (e) => {
+            const db = e.target.result;
+            if (!db.objectStoreNames.contains(this.storeName)) {
+              db.createObjectStore(this.storeName, { keyPath: 'id' });
+            }
+          };
+          req.onsuccess = () => resolve(req.result);
+          req.onerror = () => reject(req.error);
+        });
+      }
+
+      async _getStoredProfile() {
+        const db = await this._openDB();
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(this.storeName, 'readonly');
+          const req = tx.objectStore(this.storeName).get('main_profile');
+          req.onsuccess = () => resolve(req.result || null);
+          req.onerror = () => reject(req.error);
+        });
+      }
+
+      async _saveStoredProfile(profile) {
+        const db = await this._openDB();
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(this.storeName, 'readwrite');
+          const req = tx.objectStore(this.storeName).put({ id: 'main_profile', ...profile });
+          req.onsuccess = () => resolve();
+          req.onerror = () => reject(req.error);
+        });
+      }
+
+      async _deleteStoredProfile() {
+        const db = await this._openDB();
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(this.storeName, 'readwrite');
+          const req = tx.objectStore(this.storeName).delete('main_profile');
+          req.onsuccess = () => resolve();
+          req.onerror = () => reject(req.error);
+        });
+      }
+
+      /* -------------------------------------------------------------------------
+       * RAM Scrubbing & Session Teardown
+       * ------------------------------------------------------------------------- */
+      _wipeRAM() {
+        if (this.session.token) {
+          this.session.token = '0'.repeat(this.session.token.length);
+        }
+        if (this.session.gistId) {
+          this.session.gistId = '0'.repeat(this.session.gistId.length);
+        }
+        this.session.token = null;
+        this.session.gistId = null;
+        this.session.cryptoKey = null;
+      }
+
+      /* -------------------------------------------------------------------------
+       * Lifecycle & Setup
+       * ------------------------------------------------------------------------- */
+      async init(options = {}) {
+        if (options.syncFileName) {
+          this.syncFileName = options.syncFileName;
+        }
+
+        this._injectUI();
+
+        try {
+          const stored = await this._getStoredProfile();
+          if (stored && stored.salt && stored.encryptedPayload) {
+            this.setState('LOCKED');
+          } else {
+            this.setState('DISCONNECTED');
+          }
+        } catch (err) {
+          this.setState('ERROR', err.message);
+          this.emit('error', err);
+        }
+      }
+
+      async connect() {
+        const stored = await this._getStoredProfile();
+        if (!stored) {
+          this._showSetupModal();
+          return;
+        }
+
+        if (this.state === 'LOCKED' || this.state === 'DISCONNECTED' || this.state === 'ERROR') {
+          this._showUnlockModal();
+        }
+      }
+
+      async disconnect() {
+        this._wipeRAM();
+        this.setState('DISCONNECTED');
+        this.emit('syncComplete', { action: 'disconnect', success: true });
+      }
+
+      async purgeCredentials() {
+        this._wipeRAM();
+        await this._deleteStoredProfile();
+        this.setState('DISCONNECTED');
+      }
+
+      /* -------------------------------------------------------------------------
+       * GitHub API Calls
+       * ------------------------------------------------------------------------- */
+      async _verifyAndSyncGist() {
+        this.setState('CONNECTING');
+        try {
+          const res = await fetch(`https://api.github.com/gists/${this.session.gistId}`, {
+            headers: {
+              Authorization: `token ${this.session.token}`,
+              Accept: 'application/vnd.github.v3+json',
+            },
+          });
+
+          if (!res.ok) {
+            throw new Error(`GitHub API returned status ${res.status}`);
+          }
+
+          this.setState('CONNECTED');
+          const remoteData = await this.downloadData();
+          this.emit('syncComplete', { action: 'initialSync', data: remoteData });
+        } catch (err) {
+          this.setState('ERROR', err.message);
+          this.emit('error', err);
+        }
+      }
+
+      async createNewGist(token) {
+        const payload = {
+          description: 'Universal Encrypted Data Vault',
+          public: false,
+          files: {
+            [this.syncFileName]: {
+              content: JSON.stringify({ init: true, timestamp: Date.now() }),
+            },
+          },
+        };
+
+        const res = await fetch('https://api.github.com/gists', {
+          method: 'POST',
+          headers: {
+            Authorization: `token ${token}`,
+            Accept: 'application/vnd.github.v3+json',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        });
+
+        if (!res.ok) {
+          const errBody = await res.json().catch(() => ({}));
+          throw new Error(errBody.message || `Failed to create secret Gist (${res.status})`);
+        }
+
+        const json = await res.json();
+        return json.id;
+      }
+
+      async uploadData(content, mode = 'replace') {
+        if (this.state !== 'CONNECTED') {
+          throw new Error('Module must be CONNECTED to upload data.');
+        }
+
+        let payloadString = typeof content === 'string' ? content : JSON.stringify(content);
+
+        if (mode === 'append') {
+          const existing = (await this.downloadData()) || '';
+          payloadString = existing + (existing.length ? '\n' : '') + payloadString;
+        }
+
+        // Encrypt on client-side before sending over network
+        const encrypted = await this._encryptText(payloadString, this.session.cryptoKey);
+
+        const patchBody = {
+          files: {
+            [this.syncFileName]: {
+              content: JSON.stringify(encrypted),
+            },
+          },
+        };
+
+        const res = await fetch(`https://api.github.com/gists/${this.session.gistId}`, {
+          method: 'PATCH',
+          headers: {
+            Authorization: `token ${this.session.token}`,
+            Accept: 'application/vnd.github.v3+json',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(patchBody),
+        });
+
+        if (!res.ok) {
+          throw new Error(`Upload failed with status ${res.status}`);
+        }
+
+        this.emit('syncComplete', { action: 'upload', mode, data: payloadString });
+        return payloadString;
+      }
+
+      async downloadData() {
+        if (!this.session.token || !this.session.gistId || !this.session.cryptoKey) {
+          throw new Error('Session credentials uninitialized in volatile memory.');
+        }
+
+        const res = await fetch(`https://api.github.com/gists/${this.session.gistId}`, {
+          headers: {
+            Authorization: `token ${this.session.token}`,
+            Accept: 'application/vnd.github.v3+json',
+          },
+          cache: 'no-store',
+        });
+
+        if (!res.ok) {
+          throw new Error(`Failed to pull remote gist (${res.status})`);
+        }
+
+        const gist = await res.json();
+        const file = gist.files[this.syncFileName];
+
+        if (!file || !file.content) {
+          return '';
+        }
+
+        try {
+          const parsedCipher = JSON.parse(file.content);
+          if (parsedCipher.init) return '';
+          return await this._decryptText(parsedCipher, this.session.cryptoKey);
+        } catch (e) {
+          throw new Error('Payload decryption failed: invalid key or corrupted remote Gist.');
+        }
+      }
+
+      /* -------------------------------------------------------------------------
+       * User Interface Elements
+       * ------------------------------------------------------------------------- */
+      _injectUI() {
+        if (this.uiInitialized) return;
+
+        // Floating Indicator Badge
+        const badge = document.createElement('div');
+        badge.className = 'gh-sync-badge';
+        badge.id = 'gh-sync-badge-element';
+        badge.setAttribute('data-state', this.state);
+        badge.innerHTML = `
+          <div class="gh-sync-dot"></div>
+          <span class="gh-sync-label">Sync Offline</span>
+        `;
+        badge.onclick = () => this._handleBadgeClick();
+        document.body.appendChild(badge);
+
+        // Modal Injection Anchor
+        const modalHost = document.createElement('div');
+        modalHost.id = 'gh-sync-modal-host';
+        document.body.appendChild(modalHost);
+
+        this.uiInitialized = true;
+      }
+
+      updateBadgeUI() {
+        const badge = document.getElementById('gh-sync-badge-element');
+        if (!badge) return;
+
+        badge.setAttribute('data-state', this.state);
+        const label = badge.querySelector('.gh-sync-label');
+
+        switch (this.state) {
+          case 'DISCONNECTED':
+            label.textContent = 'Disconnected';
+            break;
+          case 'CONNECTING':
+            label.textContent = 'Connecting...';
+            break;
+          case 'CONNECTED':
+            label.textContent = 'Connected';
+            break;
+          case 'ERROR':
+            label.textContent = 'Sync Error';
+            break;
+          case 'LOCKED':
+            label.textContent = 'Locked (Decrypt)';
+            break;
+        }
+      }
+
+      _handleBadgeClick() {
+        if (this.state === 'CONNECTED') {
+          this._showConnectedMenuModal();
+        } else {
+          this.connect();
+        }
+      }
+
+      _closeModal() {
+        const host = document.getElementById('gh-sync-modal-host');
+        if (host) host.innerHTML = '';
+      }
+
+      _showSetupModal() {
+        const host = document.getElementById('gh-sync-modal-host');
+        host.innerHTML = `
+          <div class="gh-sync-modal-overlay active">
+            <div class="gh-sync-modal">
+              <h3>Setup GitHub Sync</h3>
+              <p>Credentials will be encrypted with your passphrase and stored locally in IndexedDB.</p>
+              
+              <div class="gh-sync-form-group">
+                <label>GitHub Personal Access Token (Classic - "gist" scope)</label>
+                <input type="password" id="gh-setup-token" class="gh-sync-input" placeholder="ghp_xxxxxxxxxxxx" autocomplete="off" />
+              </div>
+
+              <div class="gh-sync-form-group">
+                <label>Secret Gist ID (Optional)</label>
+                <div style="display: flex; gap: 8px;">
+                  <input type="text" id="gh-setup-gist" class="gh-sync-input" placeholder="Leave blank to auto-create" />
+                  <button type="button" id="gh-btn-create-gist" class="gh-sync-btn gh-sync-btn-secondary" style="white-space: nowrap;">Create Gist</button>
+                </div>
+              </div>
+
+              <div class="gh-sync-form-group">
+                <label>Master Encryption Passphrase</label>
+                <input type="password" id="gh-setup-pass" class="gh-sync-input" placeholder="Strong local encryption passphrase" autocomplete="off" />
+              </div>
+
+              <div class="gh-sync-btn-row">
+                <button type="button" class="gh-sync-btn gh-sync-btn-secondary" id="gh-setup-cancel">Cancel</button>
+                <button type="button" class="gh-sync-btn gh-sync-btn-primary" id="gh-setup-save">Save & Connect</button>
+              </div>
+            </div>
+          </div>
+        `;
+
+        document.getElementById('gh-setup-cancel').onclick = () => this._closeModal();
+
+        document.getElementById('gh-btn-create-gist').onclick = async () => {
+          const token = document.getElementById('gh-setup-token').value.trim();
+          if (!token) {
+            alert('Please enter your GitHub Personal Access Token first.');
+            return;
+          }
+
+          const btn = document.getElementById('gh-btn-create-gist');
+          try {
+            btn.textContent = 'Creating...';
+            btn.disabled = true;
+
+            const newId = await this.createNewGist(token);
+            document.getElementById('gh-setup-gist').value = newId;
+            this._showOneTimeGistModal(newId);
+          } catch (e) {
+            alert('Gist Creation Error: ' + e.message);
+          } finally {
+            if (btn) {
+              btn.textContent = 'Create Gist';
+              btn.disabled = false;
+            }
+          }
+        };
+
+        document.getElementById('gh-setup-save').onclick = async () => {
+          const token = document.getElementById('gh-setup-token').value.trim();
+          let gistId = document.getElementById('gh-setup-gist').value.trim();
+          const pass = document.getElementById('gh-setup-pass').value;
+
+          if (!token || !pass) {
+            alert('GitHub Token and Master Passphrase are required.');
+            return;
+          }
+
+          try {
+            if (!gistId) {
+              gistId = await this.createNewGist(token);
+              this._showOneTimeGistModal(gistId);
+            }
+
+            const salt = crypto.getRandomValues(new Uint8Array(16));
+            const key = await this._deriveKey(pass, salt);
+
+            const payloadToEncrypt = JSON.stringify({ token, gistId });
+            const encData = await this._encryptText(payloadToEncrypt, key);
+
+            await this._saveStoredProfile({
+              salt: Array.from(salt),
+              encryptedPayload: encData,
+            });
+
+            this.session.token = token;
+            this.session.gistId = gistId;
+            this.session.cryptoKey = key;
+
+            this._closeModal();
+            await this._verifyAndSyncGist();
+          } catch (e) {
+            alert('Setup failed: ' + e.message);
+          }
+        };
+      }
+
+      _showOneTimeGistModal(gistId) {
+        const existingModal = document.querySelector('.gh-sync-modal-overlay.active');
+        if (existingModal) existingModal.style.visibility = 'hidden';
+
+        const overlay = document.createElement('div');
+        overlay.className = 'gh-sync-modal-overlay active';
+        overlay.style.zIndex = '10002';
+        overlay.innerHTML = `
+          <div class="gh-sync-modal">
+            <h3>Gist Created Successfully</h3>
+            <p>This is your newly initialized Secret Gist ID. Save this ID securely. It will only be shown once in this dialog.</p>
+            <div class="gh-sync-code-box" id="gh-new-gist-display">${gistId}</div>
+            <div class="gh-sync-btn-row">
+              <button type="button" class="gh-sync-btn gh-sync-btn-secondary" id="gh-copy-gist-btn">Copy to Clipboard</button>
+              <button type="button" class="gh-sync-btn gh-sync-btn-primary" id="gh-dismiss-gist-btn">I Have Saved It</button>
+            </div>
+          </div>
+        `;
+        document.body.appendChild(overlay);
+
+        overlay.querySelector('#gh-copy-gist-btn').onclick = () => {
+          navigator.clipboard.writeText(gistId);
+          overlay.querySelector('#gh-copy-gist-btn').textContent = 'Copied!';
+        };
+
+        overlay.querySelector('#gh-dismiss-gist-btn').onclick = () => {
+          overlay.querySelector('#gh-new-gist-display').textContent = '';
+          overlay.remove();
+          if (existingModal) existingModal.style.visibility = 'visible';
+        };
+      }
+
+      _showUnlockModal() {
+        const host = document.getElementById('gh-sync-modal-host');
+        host.innerHTML = `
+          <div class="gh-sync-modal-overlay active">
+            <div class="gh-sync-modal">
+              <h3>Unlock Encrypted Vault</h3>
+              <p>Enter your Master Passphrase to decrypt credentials directly into volatile RAM.</p>
+              
+              <div class="gh-sync-form-group">
+                <label>Master Encryption Passphrase</label>
+                <input type="password" id="gh-unlock-pass" class="gh-sync-input" autocomplete="off" />
+              </div>
+
+              <div class="gh-sync-btn-row">
+                <button type="button" class="gh-sync-btn gh-sync-btn-secondary" id="gh-unlock-cancel">Cancel</button>
+                <button type="button" class="gh-sync-btn gh-sync-btn-primary" id="gh-unlock-btn">Unlock & Connect</button>
+              </div>
+            </div>
+          </div>
+        `;
+
+        document.getElementById('gh-unlock-cancel').onclick = () => this._closeModal();
+
+        const doUnlock = async () => {
+          const pass = document.getElementById('gh-unlock-pass').value;
+          if (!pass) return;
+
+          try {
+            const stored = await this._getStoredProfile();
+            if (!stored) throw new Error('No configuration profile found.');
+
+            const salt = new Uint8Array(stored.salt);
+            const derivedKey = await this._deriveKey(pass, salt);
+
+            const decryptedStr = await this._decryptText(stored.encryptedPayload, derivedKey);
+            const creds = JSON.parse(decryptedStr);
+
+            this.session.token = creds.token;
+            this.session.gistId = creds.gistId;
+            this.session.cryptoKey = derivedKey;
+
+            this._closeModal();
+            await this._verifyAndSyncGist();
+          } catch (e) {
+            alert('Authentication failed: Invalid Passphrase or Corrupt Storage.');
+          }
+        };
+
+        document.getElementById('gh-unlock-btn').onclick = doUnlock;
+        document.getElementById('gh-unlock-pass').onkeydown = (e) => {
+          if (e.key === 'Enter') doUnlock();
+        };
+      }
+
+      _showConnectedMenuModal() {
+        const host = document.getElementById('gh-sync-modal-host');
+        host.innerHTML = `
+          <div class="gh-sync-modal-overlay active">
+            <div class="gh-sync-modal">
+              <h3>Active Session</h3>
+              <p>Your sync session is unlocked and maintained in volatile memory.</p>
+              <div style="margin: 16px 0; font-size: 13px;">
+                <div><strong>Connected Gist ID:</strong> <span style="font-family: monospace;">${this.session.gistId || 'N/A'}</span></div>
+              </div>
+              <div class="gh-sync-btn-row">
+                <button type="button" class="gh-sync-btn gh-sync-btn-secondary" id="gh-session-close">Close</button>
+                <button type="button" class="gh-sync-btn gh-sync-btn-danger" id="gh-session-disconnect">Disconnect & Purge RAM</button>
+              </div>
+            </div>
+          </div>
+        `;
+
+        document.getElementById('gh-session-close').onclick = () => this._closeModal();
+        document.getElementById('gh-session-disconnect').onclick = () => {
+          this.disconnect();
+          this._closeModal();
+        };
+      }
+
+      promptUploadChoice(contentToUpload) {
+        return new Promise((resolve) => {
+          const host = document.getElementById('gh-sync-modal-host');
+          host.innerHTML = `
+            <div class="gh-sync-modal-overlay active">
+              <div class="gh-sync-modal">
+                <h3>Commit Data to Cloud</h3>
+                <p>Select how you wish to synchronize your content with the encrypted remote Gist.</p>
+                <div class="gh-sync-btn-row">
+                  <button type="button" class="gh-sync-btn gh-sync-btn-secondary" id="gh-choice-cancel">Cancel</button>
+                  <button type="button" class="gh-sync-btn gh-sync-btn-secondary" id="gh-choice-append">Append Content</button>
+                  <button type="button" class="gh-sync-btn gh-sync-btn-primary" id="gh-choice-replace">Replace / Overwrite</button>
+                </div>
+              </div>
+            </div>
+          `;
+
+          document.getElementById('gh-choice-cancel').onclick = () => {
+            this._closeModal();
+            resolve(null);
+          };
+
+          document.getElementById('gh-choice-append').onclick = async () => {
+            this._closeModal();
+            const res = await this.uploadData(contentToUpload, 'append');
+            resolve(res);
+          };
+
+          document.getElementById('gh-choice-replace').onclick = async () => {
+            this._closeModal();
+            const res = await this.uploadData(contentToUpload, 'replace');
+            resolve(res);
+          };
+        });
+      }
+    }
+
+    // Attach class to window
+    window.GitHubSyncModule = GitHubSyncModule;
+
+    /* ==========================================================================
+       Application Demo Wiring
+       ========================================================================== */
+    const logBox = document.getElementById('demo-log-window');
+    const logger = (msg) => {
+      const time = new Date().toLocaleTimeString();
+      logBox.innerHTML = `[${time}] ${msg}<br/>` + logBox.innerHTML;
+    };
+
+    // Instantiate Module
+    const ghSync = new GitHubSyncModule();
+
+    // Event hooks
+    ghSync.on('stateChange', ({ state, meta }) => {
+      logger(`State changed to: <strong>${state}</strong> ${meta ? `(${meta})` : ''}`);
+    });
+
+    ghSync.on('syncComplete', (event) => {
+      logger(`Sync event: <em>${event.action}</em>`);
+      if (event.action === 'initialSync' || event.action === 'download') {
+        if (event.data !== undefined) {
+          document.getElementById('demo-editor').value = event.data;
+        }
+      }
+    });
+
+    ghSync.on('error', (err) => {
+      logger(`<span style="color: #ef4444;">Error: ${err.message || err}</span>`);
+    });
+
+    // Initialize module (checks IndexedDB, updates state indicator)
+    ghSync.init();
+
+    // Wire buttons to operations
+    document.getElementById('demo-btn-upload').onclick = async () => {
+      const content = document.getElementById('demo-editor').value;
+      if (!content) {
+        alert('Text editor is empty.');
+        return;
+      }
+      try {
+        await ghSync.promptUploadChoice(content);
+      } catch (err) {
+        alert('Upload Error: ' + err.message);
+      }
+    };
+
+    document.getElementById('demo-btn-download').onclick = async () => {
+      try {
+        logger('Fetching remote payload...');
+        const plain = await ghSync.downloadData();
+        document.getElementById('demo-editor').value = plain;
+        logger('Payload decrypted and refreshed.');
+      } catch (err) {
+        alert('Download Error: ' + err.message);
+      }
+    };
+
+    document.getElementById('demo-btn-disconnect').onclick = () => {
+      ghSync.disconnect();
+      logger('RAM scrubbed. Disconnected from GitHub.');
+    };
+
+    document.getElementById('demo-btn-purge').onclick = async () => {
+      if (confirm('This will wipe your stored profile from IndexedDB and disconnect.')) {
+        await ghSync.purgeCredentials();
+        logger('IndexedDB profile cleared.');
+      }
+    };
+  </script>
+</body>
+</html>
