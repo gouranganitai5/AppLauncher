@@ -1,0 +1,4209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Martingale Risk Strategy Calculator</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0c10;
+    --surface: #111318;
+    --surface2: #181c23;
+    --border: #22273a;
+    --accent: #f0c040;
+    --accent2: #e0853a;
+    --green: #3dffa0;
+    --red: #ff4d6d;
+    --text: #e8eaf0;
+    --muted: #6b7490;
+    --radius: 14px;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Syne', sans-serif;
+    --accent-r: 240; --accent-g: 192; --accent-b: 64;
+  }
+
+  /* ══════════════════════════════════════════
+     THEMES  (applied via [data-theme] on <html>)
+     Exactly 5 preset themes.
+     ══════════════════════════════════════════ */
+
+  /* 1. Midnight Gold (default) — elegant premium dark */
+  [data-theme="midnight-gold"] {
+    --bg: #0a0c10; --surface: #111318; --surface2: #181c23;
+    --border: #22273a; --accent: #f0c040; --accent2: #e0853a;
+    --green: #3dffa0; --red: #ff4d6d; --text: #e8eaf0; --muted: #6b7490;
+    --accent-r: 240; --accent-g: 192; --accent-b: 64;
+  }
+
+  /* 2. Ocean Blue — modern dark navy/cyan */
+  [data-theme="ocean-blue"] {
+    --bg: #030a14; --surface: #071525; --surface2: #0b1f35;
+    --border: #112d4e; --accent: #38bdf8; --accent2: #0ea5e9;
+    --green: #34d399; --red: #f87171; --text: #dbeafe; --muted: #4a7fa5;
+    --accent-r: 56; --accent-g: 189; --accent-b: 248;
+  }
+
+  /* 3. Emerald Neon — dark green, glowing highlights */
+  [data-theme="emerald-neon"] {
+    --bg: #030d07; --surface: #081a0e; --surface2: #0d2415;
+    --border: #133320; --accent: #00ff88; --accent2: #00d4aa;
+    --green: #00ff88; --red: #ff4d6d; --text: #d6ffe8; --muted: #4a8f66;
+    --accent-r: 0; --accent-g: 255; --accent-b: 136;
+  }
+
+  /* 4. Royal Purple — elegant dark violet */
+  [data-theme="royal-purple"] {
+    --bg: #08040f; --surface: #110a1e; --surface2: #19102d;
+    --border: #2a1a45; --accent: #c084fc; --accent2: #a855f7;
+    --green: #4ade80; --red: #f87171; --text: #ede9fe; --muted: #7c5fa0;
+    --accent-r: 192; --accent-g: 132; --accent-b: 252;
+  }
+
+  /* 5. Clean Light — professional light theme */
+  [data-theme="light-clean"] {
+    --bg: #f5f6f8; --surface: #ffffff; --surface2: #eef0f4;
+    --border: #d8dce8; --accent: #2563eb; --accent2: #f59e0b;
+    --green: #059669; --red: #dc2626; --text: #1e2333; --muted: #6b7280;
+    --accent-r: 37; --accent-g: 99; --accent-b: 235;
+  }
+
+  /* ══════════════════════════════════════════
+     SETTINGS TOOLBAR
+     ══════════════════════════════════════════ */
+  .settings-bar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: .5rem 1.2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: .5rem .8rem;
+    transition: background .3s, border-color .3s;
+  }
+
+  .settings-group {
+    display: flex;
+    align-items: center;
+    gap: .45rem;
+  }
+
+  .settings-label {
+    font-family: var(--mono);
+    font-size: .6rem;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  /* Theme selector */
+  .theme-select {
+    background: var(--surface2) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 8px !important;
+    padding: .3rem .6rem !important;
+    color: var(--text) !important;
+    font-family: var(--mono) !important;
+    font-size: .72rem !important;
+    cursor: pointer;
+    outline: none;
+    transition: border-color .2s;
+    width: auto !important;
+    padding-right: 1.6rem !important;
+  }
+  .theme-select:focus { border-color: var(--accent) !important; }
+
+  /* Font size buttons */
+  .font-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-weight: 700;
+    font-size: .75rem;
+    padding: .28rem .55rem;
+    cursor: pointer;
+    transition: background .18s, border-color .18s, color .18s;
+    user-select: none;
+    -webkit-user-select: none;
+    white-space: nowrap;
+    line-height: 1;
+  }
+  .font-btn:hover { background: var(--accent); color: #000; border-color: var(--accent); }
+  .font-btn:active { transform: scale(.95); }
+
+  /* Font size display badge */
+  .font-size-badge {
+    font-family: var(--mono);
+    font-size: .65rem;
+    color: var(--muted);
+    min-width: 32px;
+    text-align: center;
+  }
+
+  @media (max-width: 480px) {
+    .settings-bar { padding: .4rem .8rem; gap: .4rem; }
+    .settings-label { display: none; }
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+
+  /* Smooth theme transitions */
+  body, .card, .balance-item, input, select, table, thead, th, td,
+  .step-badge, .cum-positive, .cum-negative, .warn-badge,
+  .proj-table-wrap, #projectionTable, .day-badge,
+  .proj-summary, .proj-summary-item, .ps-value, .ps-label, .ps-sub {
+    transition: background-color .25s ease, border-color .25s ease, color .25s ease;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 80% 60% at 20% 10%, rgba(240,192,64,.07) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 50% at 80% 90%, rgba(61,255,160,.05) 0%, transparent 55%),
+      repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(255,255,255,.015) 39px, rgba(255,255,255,.015) 40px),
+      repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(255,255,255,.015) 39px, rgba(255,255,255,.015) 40px);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 2rem 1.2rem 4rem;
+  }
+
+  /* ── Header ── */
+  header {
+    text-align: center;
+    padding: 2.5rem 0 2rem;
+    animation: fadeUp .6s ease both;
+  }
+
+  .logo-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: .5rem;
+    background: rgba(240,192,64,.1);
+    border: 1px solid rgba(240,192,64,.25);
+    border-radius: 50px;
+    padding: .35rem 1rem;
+    font-size: .72rem;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 1.2rem;
+    font-family: var(--mono);
+  }
+
+  .logo-chip span {
+    width: 6px; height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+    animation: pulse 1.8s infinite;
+  }
+
+  h1 {
+    font-size: clamp(1.8rem, 5vw, 2.8rem);
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -.03em;
+    background: linear-gradient(135deg, #fff 30%, var(--accent) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .subtitle {
+    margin-top: .6rem;
+    color: var(--muted);
+    font-size: .9rem;
+    font-family: var(--mono);
+    letter-spacing: .04em;
+  }
+
+  /* ══════════════════════════════════════════
+     TABS — Main / Summary
+     ══════════════════════════════════════════ */
+  .tabs-nav {
+    display: flex;
+    gap: .5rem;
+    margin-bottom: 1.2rem;
+    padding: .3rem;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+  }
+
+  .tab-btn {
+    flex: 1;
+    padding: .65rem 1rem;
+    border: none;
+    border-radius: 9px;
+    background: transparent;
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: .78rem;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background .2s, color .2s;
+    min-height: 44px;
+  }
+
+  .tab-btn:hover { color: var(--text); }
+
+  .tab-btn.active {
+    background: var(--accent);
+    color: var(--bg, #0b0b0f);
+  }
+
+  [data-theme^="light"] .tab-btn.active { color: #fff; }
+
+  .tab-panel[hidden] { display: none; }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.6rem;
+    margin-bottom: 1.2rem;
+    animation: fadeUp .5s ease both;
+  }
+
+  .card:nth-child(2) { animation-delay: .1s; }
+  .card:nth-child(3) { animation-delay: .2s; }
+  .card:nth-child(4) { animation-delay: .3s; }
+
+  .card-label {
+    font-size: .68rem;
+    letter-spacing: .15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-family: var(--mono);
+    margin-bottom: 1.1rem;
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+  }
+
+  .card-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ── Input grid ── */
+  .input-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  @media (max-width: 480px) {
+    .input-grid { grid-template-columns: 1fr; }
+  }
+
+  .field label {
+    display: block;
+    font-size: .75rem;
+    color: var(--muted);
+    font-family: var(--mono);
+    margin-bottom: .5rem;
+    letter-spacing: .06em;
+  }
+
+  .input-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .currency-sign {
+    position: absolute;
+    left: .9rem;
+    color: var(--accent);
+    font-family: var(--mono);
+    font-weight: 700;
+    font-size: .95rem;
+    pointer-events: none;
+  }
+
+  /* Win Percentage suffix — mirrors .currency-sign but sits on the
+     right, since this field has no leading $ sign. */
+  .percent-sign {
+    position: absolute;
+    right: .95rem;
+    color: var(--accent);
+    font-family: var(--mono);
+    font-weight: 700;
+    font-size: .95rem;
+    pointer-events: none;
+  }
+
+  input[type="number"]#winPercentage {
+    padding-left: .9rem;
+    padding-right: 2.1rem;
+  }
+
+  input[type="number"] {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: .75rem .9rem .75rem 2rem;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 1.05rem;
+    outline: none;
+    transition: border-color .2s, box-shadow .2s;
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+  input[type="number"]:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(240,192,64,.12);
+  }
+
+  /* Summary tab's isolated "No. of Days" field — no currency
+     prefix, so drop the left padding reserved for it and match
+     the centered numeric style used elsewhere for day counts. */
+  input[type="number"]#daysInvest {
+    padding: .75rem .9rem;
+    text-align: center;
+    font-weight: 700;
+    color: var(--accent);
+  }
+
+  select {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: .78rem 1rem;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: .95rem;
+    outline: none;
+    cursor: pointer;
+    transition: border-color .2s, box-shadow .2s;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7490' stroke-width='1.8' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 1rem center;
+    padding-right: 2.5rem;
+  }
+
+  select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(240,192,64,.12);
+  }
+
+  /* ── Trade Balance display ── */
+  .balance-display {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .balance-item {
+    flex: 1;
+    min-width: 120px;
+    text-align: center;
+    background: var(--surface2);
+    border-radius: 12px;
+    padding: 1rem .8rem;
+    border: 1px solid var(--border);
+    transition: border-color .3s;
+  }
+
+  .balance-item.highlight {
+    border-color: rgba(240,192,64,.4);
+    background: rgba(240,192,64,.05);
+  }
+
+  .balance-item .b-label {
+    font-size: .65rem;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-family: var(--mono);
+    margin-bottom: .4rem;
+  }
+
+  .balance-item .b-value {
+    font-family: var(--mono);
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--text);
+    transition: color .3s;
+  }
+
+  .balance-item.highlight .b-value { color: var(--accent); }
+
+  /* ── Existing Martingale table ── */
+  .table-wrap {
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--mono);
+    font-size: clamp(.56rem, 1.6vw, .82rem);
+    table-layout: fixed;
+  }
+
+  col.col-step   { width: 9%; }
+  col.col-invest { width: 19%; }
+  col.col-pct    { width: 14%; }
+  col.col-profit { width: 18%; }
+  col.col-loss   { width: 18%; }
+  col.col-cum    { width: 22%; }
+
+  thead tr { background: var(--surface2); }
+
+  thead th {
+    padding: .65rem .4rem;
+    text-align: right;
+    font-size: clamp(.46rem, 1.1vw, .6rem);
+    letter-spacing: .03em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 600;
+    border-bottom: 1px solid var(--border);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  thead th:first-child { text-align: center; }
+
+  tbody tr {
+    border-bottom: 1px solid rgba(34,39,58,.6);
+    transition: background .15s;
+  }
+
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: rgba(255,255,255,.025); }
+
+  tbody td {
+    padding: .6rem .4rem;
+    text-align: right;
+    vertical-align: middle;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  tbody td:first-child { text-align: center; }
+
+  tr.over-budget { background: rgba(255,77,109,.05); }
+  tr.over-budget .step-badge {
+    background: rgba(255,77,109,.18);
+    border-color: var(--red);
+    color: var(--red);
+  }
+
+  .warn-badge {
+    display: block;
+    font-size: clamp(.42rem, .95vw, .54rem);
+    color: var(--red);
+    background: rgba(255,77,109,.12);
+    border: 1px solid rgba(255,77,109,.35);
+    border-radius: 3px;
+    padding: .08rem .25rem;
+    margin-top: .18rem;
+    line-height: 1.4;
+    white-space: nowrap;
+    text-align: center;
+  }
+
+  .cell-main  { display: block; }
+  .cell-sub   { display: block; font-size: clamp(.42rem, .95vw, .56rem); opacity: .7; margin-top: .1rem; }
+  .cell-sub.pos { color: var(--green); }
+  .cell-sub.neg { color: var(--red); }
+
+  .step-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    font-weight: 700;
+    font-size: .85rem;
+    color: var(--accent);
+  }
+
+  .amount { color: var(--text); font-weight: 700; font-size: .9rem; }
+  .pct    { color: var(--muted); }
+  .profit { color: var(--green); font-weight: 600; }
+  .profit-val { font-size: clamp(.56rem, 1.5vw, .82rem); }
+  .loss   { color: var(--red); font-weight: 600; }
+
+  .cum-positive {
+    color: var(--green);
+    font-weight: 700;
+    background: rgba(61,255,160,.07);
+    border-radius: 6px;
+    padding: .2rem .5rem;
+    display: inline-block;
+  }
+
+  .cum-negative {
+    color: var(--red);
+    font-weight: 700;
+    background: rgba(255,77,109,.07);
+    border-radius: 6px;
+    padding: .2rem .5rem;
+    display: inline-block;
+  }
+
+  .strategy-strip { display: flex; gap: .6rem; flex-wrap: wrap; margin-top: 1rem; }
+
+  .s-pill {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 50px;
+    padding: .3rem .9rem;
+    font-family: var(--mono);
+    font-size: .72rem;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+  }
+
+  .s-pill span.dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--accent2);
+  }
+
+  .note {
+    text-align: center;
+    margin-top: 2.5rem;
+    font-size: .72rem;
+    color: var(--muted);
+    font-family: var(--mono);
+    line-height: 1.6;
+    padding: 0 1rem;
+  }
+
+  /* ══════════════════════════════════════════
+     LIGHT THEME VISUAL ENHANCEMENTS
+     ══════════════════════════════════════════ */
+
+  /* Suppress the dark animated grid overlay on light themes */
+  [data-theme^="light"] body::before {
+    background:
+      radial-gradient(ellipse 80% 60% at 20% 10%, rgba(var(--accent-r,37),var(--accent-g,99),var(--accent-b,235),.06) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 50% at 80% 90%, rgba(var(--accent-r,37),var(--accent-g,99),var(--accent-b,235),.04) 0%, transparent 55%);
+  }
+
+  /* Light theme table row hover and border tweaks */
+  [data-theme^="light"] tbody tr { border-bottom: 1px solid var(--border); }
+  [data-theme^="light"] tbody tr:hover { background: rgba(0,0,0,.025); }
+  [data-theme^="light"] #projectionTable tbody tr { border-bottom: 1px solid var(--border); }
+  [data-theme^="light"] #projectionTable tbody tr:nth-child(even) { background: rgba(0,0,0,.02); }
+  [data-theme^="light"] #projectionTable tbody tr:hover { background: rgba(0,0,0,.04); }
+
+  /* Strengthen light-theme card surfaces */
+  [data-theme^="light"] .card {
+    box-shadow: 0 2px 12px rgba(0,0,0,.07), 0 1px 3px rgba(0,0,0,.05);
+  }
+
+  /* Balance item highlight on light themes */
+  [data-theme^="light"] .balance-item.highlight {
+    border-color: rgba(var(--accent-r,37),var(--accent-g,99),var(--accent-b,235),.35);
+    background: rgba(var(--accent-r,37),var(--accent-g,99),var(--accent-b,235),.06);
+  }
+
+  /* Cum badges on light themes */
+  [data-theme^="light"] .cum-positive { background: rgba(5,150,105,.1); }
+  [data-theme^="light"] .cum-negative { background: rgba(220,38,38,.1); }
+
+  /* Header gradient on light themes */
+  [data-theme^="light"] h1 {
+    background: linear-gradient(135deg, var(--text) 30%, var(--accent) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Logo chip on light themes */
+  [data-theme^="light"] .logo-chip {
+    background: rgba(0,0,0,.06);
+    border-color: rgba(0,0,0,.12);
+  }
+
+  /* Projection table day badge on light themes */
+  [data-theme^="light"] .day-badge {
+    background: rgba(0,0,0,.06);
+    border-color: rgba(0,0,0,.14);
+  }
+
+  /* Step badge on light themes */
+  [data-theme^="light"] .step-badge {
+    background: var(--surface2);
+    border-color: var(--border);
+  }
+
+  /* Calendar panel shadow on light themes */
+  [data-theme^="light"] .cal-panel {
+    box-shadow: 0 8px 32px rgba(0,0,0,.15);
+  }
+
+  /* Over-budget row on light themes */
+  [data-theme^="light"] tr.over-budget { background: rgba(220,38,38,.05); }
+
+  /* ══════════════════════════════════════════
+     PROJECTION SUMMARY CARD STYLES
+     ══════════════════════════════════════════ */
+
+  .proj-summary {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: .8rem;
+    margin-bottom: 1.2rem;
+    padding: 1rem 1.1rem;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    transition: background .25s, border-color .25s;
+  }
+
+  @media (max-width: 640px) {
+    .proj-summary { grid-template-columns: 1fr 1fr; }
+  }
+  @media (max-width: 360px) {
+    .proj-summary { grid-template-columns: 1fr; }
+  }
+
+  .proj-summary-item {
+    display: flex;
+    flex-direction: column;
+    gap: .22rem;
+    padding: .7rem .85rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    transition: background .25s, border-color .25s;
+    min-width: 0;
+  }
+
+  .proj-summary-item .ps-label {
+    font-family: var(--mono);
+    font-size: .58rem;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .proj-summary-item .ps-value {
+    font-family: var(--mono);
+    font-size: clamp(.8rem, 2.2vw, 1.05rem);
+    font-weight: 700;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: color .25s;
+  }
+
+  .proj-summary-item .ps-value.ps-accent  { color: var(--accent); }
+  .proj-summary-item .ps-value.ps-green   { color: var(--green); }
+  .proj-summary-item .ps-value.ps-accent2 { color: var(--accent2); }
+
+  .proj-summary-item .ps-sub {
+    font-family: var(--mono);
+    font-size: .58rem;
+    color: var(--muted);
+    margin-top: .05rem;
+  }
+
+  .proj-summary-item.ps-highlight {
+    border-color: var(--accent);
+    background: rgba(var(--accent-r,240),var(--accent-g,192),var(--accent-b,64),.06);
+  }
+
+  [data-theme^="light"] .proj-summary-item.ps-highlight {
+    background: rgba(0,0,0,.04);
+  }
+
+  /* Section header for summary */
+  .proj-summary-header {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    font-family: var(--mono);
+    font-size: .6rem;
+    letter-spacing: .13em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: .65rem;
+  }
+
+  .proj-summary-header::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .ps-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    flex-shrink: 0;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(18px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: .3; }
+  }
+  .val-flash { animation: flash .35s ease; }
+  @keyframes flash {
+    0%   { opacity: .4; }
+    100% { opacity: 1; }
+  }
+
+  @media (max-width: 600px) {
+    .container { padding: 1rem .9rem 3rem; }
+    .balance-display { gap: .6rem; }
+    .balance-item { padding: .75rem .6rem; min-width: 80px; }
+    .balance-item .b-value { font-size: 1.1rem; }
+    .card { padding: 1.2rem; }
+    .step-badge { width: 22px; height: 22px; font-size: .68rem; border-radius: 5px; }
+    .cum-positive, .cum-negative { padding: .1rem .25rem; }
+  }
+
+  /* ══════════════════════════════════════════════════════
+     05 — PROJECTION TABLE STYLES  (new, isolated)
+     ══════════════════════════════════════════════════════ */
+
+  /* Controls row */
+  .proj-controls {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 1rem 1.4rem;
+    align-items: start;
+    margin-bottom: 1.4rem;
+  }
+
+  @media (max-width: 520px) {
+    .proj-controls { grid-template-columns: 1fr; }
+  }
+
+  .proj-controls .field { display: flex; flex-direction: column; gap: .45rem; }
+  .proj-controls .field label { margin-bottom: 0; }
+
+  /* ── NUMBER OF DAYS — editable numeric input ── */
+  .days-input-wrap {
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+  }
+
+  .days-input-box {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 120px;
+    flex-shrink: 0;
+  }
+
+  input[type="number"]#projDays {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: .72rem .9rem;
+    color: var(--accent);
+    font-family: var(--mono);
+    font-size: 1.05rem;
+    font-weight: 700;
+    text-align: center;
+    outline: none;
+    transition: border-color .2s, box-shadow .2s;
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+
+  input[type="number"]#projDays::-webkit-inner-spin-button,
+  input[type="number"]#projDays::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+  input[type="number"]#projDays:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(var(--accent-r,240),var(--accent-g,192),var(--accent-b,64),.14);
+  }
+
+  input[type="number"]#projDays.days-invalid {
+    border-color: var(--red);
+    box-shadow: 0 0 0 3px rgba(255,77,109,.14);
+  }
+
+  input[type="number"]#daysInvest.days-invalid {
+    border-color: var(--red);
+    box-shadow: 0 0 0 3px rgba(255,77,109,.14);
+  }
+
+  .days-unit-label {
+    font-family: var(--mono);
+    font-size: .7rem;
+    letter-spacing: .06em;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  .days-hint {
+    font-family: var(--mono);
+    font-size: .62rem;
+    color: var(--muted);
+    margin-top: .4rem;
+    letter-spacing: .02em;
+    min-height: 1.1em;
+  }
+
+  .days-hint.days-hint-warn { color: var(--red); }
+
+  /* ── DURATION (Years / Months / Days) inputs ──
+     Sit above the existing Number of Days / No. of Days input as an
+     alternative, date-aware way to specify the same value. Styled to
+     match the app's existing input language (surface2 fill, border,
+     mono font) at a smaller footprint since three sit side by side. */
+  .duration-ymd-row {
+    display: flex;
+    align-items: flex-end;
+    gap: .55rem;
+    flex-wrap: wrap;
+    margin-bottom: .65rem;
+  }
+
+  .ymd-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: .3rem;
+  }
+
+  .ymd-box input[type="number"] {
+    width: 62px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: .5rem .3rem;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: .85rem;
+    font-weight: 700;
+    text-align: center;
+    outline: none;
+    transition: border-color .2s, box-shadow .2s;
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+
+  .ymd-box input[type="number"]::-webkit-inner-spin-button,
+  .ymd-box input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+  .ymd-box input[type="number"]:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(var(--accent-r,240),var(--accent-g,192),var(--accent-b,64),.14);
+  }
+
+  .ymd-unit {
+    font-family: var(--mono);
+    font-size: .58rem;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  .duration-divider {
+    font-family: var(--mono);
+    font-size: .65rem;
+    color: var(--muted);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    margin: .5rem 0 .35rem;
+  }
+
+  @media (max-width: 480px) {
+    .ymd-box input[type="number"] { width: 56px; }
+    .duration-ymd-row { gap: .4rem; }
+  }
+
+  /* ── CALENDAR PICKER ── */
+  .cal-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+  }
+
+  /* The button that opens/closes the calendar */
+  .cal-trigger {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: .72rem 1rem;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: .9rem;
+    cursor: pointer;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: border-color .2s, box-shadow .2s;
+    letter-spacing: .04em;
+  }
+  .cal-trigger:hover,
+  .cal-trigger.open { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(var(--accent-rgb, 240,192,64),.1); }
+
+  .cal-trigger .cal-icon { font-size: 1rem; }
+  .cal-trigger .cal-val  { flex: 1; padding: 0 .5rem; }
+  .cal-trigger .cal-clr  {
+    font-size: .75rem;
+    opacity: .5;
+    padding: .1rem .3rem;
+    border-radius: 4px;
+    transition: opacity .15s;
+  }
+  .cal-trigger .cal-clr:hover { opacity: 1; color: var(--red); }
+
+  /* Dropdown panel */
+  .cal-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: .9rem;
+    display: none;
+    box-shadow: 0 12px 40px rgba(0,0,0,.4);
+    z-index: 50;
+    animation: calDrop .18s ease both;
+  }
+  .cal-panel.open { display: block; }
+
+  @keyframes calDrop {
+    from { opacity: 0; transform: translateY(-8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Calendar header: prev | Month Year | next */
+  .cal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: .7rem;
+  }
+
+  .cal-nav {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    color: var(--text);
+    font-size: .9rem;
+    width: 28px; height: 28px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background .15s, border-color .15s;
+    flex-shrink: 0;
+  }
+  .cal-nav:hover { background: var(--accent); color: #000; border-color: var(--accent); }
+
+  .cal-month-label {
+    font-family: var(--mono);
+    font-size: .78rem;
+    font-weight: 700;
+    letter-spacing: .06em;
+    color: var(--text);
+    text-transform: uppercase;
+    text-align: center;
+    flex: 1;
+  }
+
+  /* Day-of-week row */
+  .cal-dow {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    margin-bottom: .3rem;
+  }
+  .cal-dow span {
+    text-align: center;
+    font-family: var(--mono);
+    font-size: .58rem;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: .2rem 0;
+  }
+
+  /* Day grid */
+  .cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+  }
+
+  .cal-day {
+    aspect-ratio: 1;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 7px;
+    font-family: var(--mono);
+    font-size: .72rem;
+    font-weight: 600;
+    cursor: pointer;
+    color: var(--text);
+    border: 1px solid transparent;
+    transition: background .12s, color .12s, border-color .12s;
+    min-width: 0;
+  }
+  .cal-day:hover:not(.cal-disabled):not(.cal-empty) {
+    background: var(--surface2);
+    border-color: var(--border);
+  }
+  .cal-day.cal-today {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .cal-day.cal-selected {
+    background: var(--accent);
+    color: #000;
+    font-weight: 800;
+    border-color: var(--accent);
+  }
+  .cal-day.cal-disabled {
+    color: var(--muted);
+    opacity: .3;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+  .cal-day.cal-empty { pointer-events: none; }
+
+  /* Scrollable wrapper */
+  .proj-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+  }
+
+  /* Projection table */
+  #projectionTable {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--mono);
+    font-size: clamp(.6rem, 1.55vw, .8rem);
+    table-layout: auto;
+    min-width: 420px;
+  }
+
+  #projectionTable thead tr { background: var(--surface2); }
+
+  #projectionTable thead th {
+    padding: .7rem .6rem;
+    text-align: right;
+    font-size: clamp(.48rem, 1.1vw, .62rem);
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 600;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+
+  #projectionTable thead th:first-child { text-align: center; }
+  #projectionTable thead th:last-child  { text-align: center; }
+  #projectionTable thead th.th-step     { color: var(--accent); opacity: .9; }
+
+  #projectionTable tbody tr {
+    border-bottom: 1px solid rgba(34,39,58,.55);
+    transition: background .12s;
+  }
+  #projectionTable tbody tr:last-child  { border-bottom: none; }
+  #projectionTable tbody tr:nth-child(even) { background: rgba(255,255,255,.013); }
+  #projectionTable tbody tr:hover       { background: rgba(255,255,255,.03); }
+
+  #projectionTable tbody td {
+    padding: .62rem .6rem;
+    text-align: right;
+    vertical-align: middle;
+    white-space: nowrap;
+  }
+  #projectionTable tbody td:first-child { text-align: center; }
+  #projectionTable tbody td:last-child  { text-align: center; min-width: 108px; }
+
+  /* Empty state row */
+  .proj-empty-row td {
+    text-align: center !important;
+    color: var(--muted);
+    padding: 1.4rem !important;
+    font-size: .78rem;
+  }
+
+  /* Day badge */
+  .day-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 52px;
+    padding: .18rem .5rem;
+    border-radius: 6px;
+    background: rgba(240,192,64,.1);
+    border: 1px solid rgba(240,192,64,.22);
+    font-weight: 700;
+    font-size: clamp(.52rem, 1.25vw, .7rem);
+    color: var(--accent);
+    letter-spacing: .02em;
+  }
+
+  /* Balance cell */
+  .proj-balance { color: var(--text); font-weight: 600; }
+
+  /* Target cell */
+  .proj-target  { color: var(--accent2); font-weight: 700; }
+
+  /* Step cells */
+  .proj-step    { color: var(--text); }
+
+  /* Date cell */
+  .proj-date    {
+    color: var(--muted);
+    font-size: clamp(.5rem, 1.15vw, .66rem);
+    letter-spacing: .04em;
+    background: var(--surface2);
+    border-radius: 5px;
+    padding: .18rem .45rem;
+    display: inline-block;
+  }
+
+  /* ══════════════════════════════════════════════════════
+     06 — MOBILE / TOUCH REFINEMENTS
+     Layered on top of the existing responsive rules above;
+     nothing here changes calculation logic or element IDs.
+     ══════════════════════════════════════════════════════ */
+
+  /* Tablet and below */
+  @media (max-width: 768px) {
+    .container { padding: 1.4rem 1rem 3.5rem; }
+    header { padding: 1.8rem 0 1.4rem; }
+  }
+
+  /* Phones */
+  @media (max-width: 600px) {
+    /* Comfortable 44px+ touch targets everywhere */
+    .font-btn { min-width: 40px; min-height: 40px; padding: .4rem .6rem; font-size: .82rem; }
+    .theme-select { min-height: 40px; padding-top: .5rem !important; padding-bottom: .5rem !important; }
+    .cal-nav { width: 38px; height: 38px; font-size: 1.05rem; }
+    .cal-trigger { min-height: 46px; }
+    input[type="number"], select { min-height: 46px; }
+    #calClear { padding: .3rem .5rem; }
+    #tbcCalClear { padding: .3rem .5rem; }
+
+    /* Martingale Steps table: scroll instead of truncating values on
+       narrow screens — fixed layout forces ellipsis, so switch to a
+       scrollable auto layout with a sane minimum width. Same columns,
+       same data, same calculations — just readable via horizontal scroll. */
+    #martingaleTable {
+      table-layout: auto;
+      min-width: 560px;
+    }
+    #martingaleTable th, #martingaleTable td { white-space: nowrap; }
+
+    /* Header */
+    header { padding: 1.4rem 0 1.2rem; }
+    .logo-chip { font-size: .64rem; padding: .3rem .8rem; margin-bottom: .9rem; }
+    h1 { letter-spacing: -.02em; }
+    .subtitle { font-size: .8rem; }
+
+    /* Settings toolbar: allow a clean vertical stack if it can't fit */
+    .settings-bar { justify-content: center; }
+    .settings-group { flex: 1 1 auto; justify-content: center; }
+
+    /* Cards */
+    .card { padding: 1.1rem 1rem; border-radius: 12px; }
+    .card-label { font-size: .62rem; margin-bottom: .9rem; }
+
+    /* Balance breakdown: prevent cramped/overlapping values */
+    .balance-item { min-width: 96px; padding: .8rem .5rem; }
+    .balance-item .b-value { font-size: 1.05rem; }
+
+    /* Number of Days control */
+    .days-input-box { width: 100px; }
+
+    /* Calendar: keep the dropdown inside the viewport */
+    .cal-panel { padding: .8rem; }
+    .cal-day { font-size: .78rem; }
+  }
+
+  /* Very narrow phones (320–380px) */
+  @media (max-width: 380px) {
+    .container { padding: 1rem .7rem 3rem; }
+    h1 { font-size: clamp(1.5rem, 7vw, 1.9rem); }
+    .balance-display { flex-direction: column; }
+    .balance-item { width: 100%; }
+    .settings-bar { padding: .5rem .6rem; }
+    .settings-group { gap: .3rem; }
+  }
+
+  /* Ensure focus states are always visible for keyboard/touch users */
+  input:focus-visible, select:focus-visible, button:focus-visible, .cal-day:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  /* ══════════════════════════════════════════════════════
+     07 — SUMMARY CARD ENHANCEMENTS + NAV BUTTONS  (new)
+     ══════════════════════════════════════════════════════ */
+
+  /* Wrapper that groups the summary header + summary grid so it can
+     be scrolled/focused as a single unit on startup navigation. */
+  .summary-card-wrap { outline: none; }
+
+  /* Row of nav buttons that sits beside the "Summary" header */
+  .summary-nav-btns {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    margin-left: .6rem;
+    flex-shrink: 0;
+  }
+
+  /* Shared style for the small round nav arrow buttons */
+  .nav-arrow-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .4rem;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--accent);
+    font-size: .95rem;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    animation: navFloat 2.6s ease-in-out infinite;
+    transition: transform .15s ease, background .18s ease, border-color .18s ease, box-shadow .18s ease, color .18s ease;
+  }
+
+  .nav-arrow-btn:hover {
+    background: var(--accent);
+    color: #000;
+    border-color: var(--accent);
+    transform: translateY(-2px);
+    animation-play-state: paused;
+  }
+
+  .nav-arrow-btn:active { transform: scale(.9); }
+
+  .nav-arrow-btn:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    animation-play-state: paused;
+  }
+
+  @keyframes navFloat {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-3px); }
+  }
+
+  /* Bottom "back to top" button after the projection table */
+  .bottom-nav-wrap {
+    display: flex;
+    justify-content: center;
+    margin-top: 1.2rem;
+  }
+
+  .nav-arrow-btn-bottom {
+    width: auto;
+    height: auto;
+    padding: .62rem 1.3rem;
+    border-radius: 50px;
+    font-family: var(--mono);
+    font-size: .7rem;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+  }
+
+  .nav-arrow-btn-bottom .nav-arrow-icon { font-size: 1rem; }
+
+  [data-theme^="light"] .nav-arrow-btn:hover { color: #fff; }
+
+  /* Brief highlight pulse applied to the last projection row when the
+     Summary Down Arrow navigates to it */
+  .proj-row-highlight td {
+    animation: projRowPulse 1.4s ease 1;
+  }
+
+  @keyframes projRowPulse {
+    0%   { background: rgba(var(--accent-r,240), var(--accent-g,192), var(--accent-b,64), .22); }
+    100% { background: transparent; }
+  }
+
+  @media (max-width: 480px) {
+    .proj-summary-header { flex-wrap: wrap; row-gap: .5rem; }
+    .summary-nav-btns { margin-left: 0; }
+  }
+
+  /* ══════════════════════════════════════════════════════
+     08 — MOBILE PERFORMANCE OPTIMIZATIONS  (new)
+     ══════════════════════════════════════════════════════ */
+
+  /* Faster, more native-feeling taps: skip the browser's default
+     300ms double-tap-to-zoom delay on interactive controls, and
+     drop the gray tap-highlight flash in favor of our own
+     hover/active feedback. Doesn't change layout or behavior. */
+  button, input, select, .cal-day, .cal-trigger, .theme-select,
+  .font-btn, .nav-arrow-btn {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Lighter decorative background on small screens: drop the fine
+     repeating grid-line pattern (kept only as the two soft glows)
+     to reduce paint/rasterization cost on lower-powered mobile
+     GPUs. Purely decorative — no layout or functional change. */
+  @media (max-width: 600px) {
+    body::before {
+      background:
+        radial-gradient(ellipse 80% 60% at 20% 10%, rgba(240,192,64,.07) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 80% 90%, rgba(61,255,160,.05) 0%, transparent 55%);
+    }
+  }
+
+  /* Respect the user's OS-level reduced-motion preference: keeps
+     every animated feature intact for everyone else, but stops
+     continuous/decorative animation (which costs battery and can
+     cause motion discomfort) for users who've opted out. */
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after {
+      animation-duration: .01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: .01ms !important;
+    }
+  }
+
+  /* ══════════════════════════════════════════════════════
+     09 — TOOLS TAB (Daily Profit Target / Target Balance /
+     Recovery Calculator) — new, additive only. Reuses the
+     existing .card / .field / .input-wrap / .proj-summary /
+     .days-hint building blocks wherever possible so the three
+     new calculators inherit every theme + font-size rule for
+     free instead of duplicating styles.
+     ══════════════════════════════════════════════════════ */
+
+  .tool-sub {
+    font-size: .78rem;
+    color: var(--muted);
+    font-family: var(--mono);
+    line-height: 1.5;
+    margin-bottom: 1.1rem;
+  }
+
+  .tool-link-row {
+    display: flex;
+    align-items: center;
+    gap: .55rem;
+    margin-bottom: 1rem;
+    padding: .6rem .8rem;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    flex-wrap: wrap;
+  }
+
+  .tool-link-row input[type="checkbox"] {
+    width: 17px;
+    height: 17px;
+    accent-color: var(--accent);
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .tool-link-row label {
+    font-family: var(--mono);
+    font-size: .74rem;
+    color: var(--text);
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .tool-linked-badge {
+    font-family: var(--mono);
+    font-size: .62rem;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--accent);
+    background: rgba(var(--accent-r,240),var(--accent-g,192),var(--accent-b,64),.12);
+    border: 1px solid rgba(var(--accent-r,240),var(--accent-g,192),var(--accent-b,64),.35);
+    border-radius: 50px;
+    padding: .18rem .6rem;
+    margin-left: auto;
+    white-space: nowrap;
+  }
+
+  .tool-linked-values {
+    font-family: var(--mono);
+    font-size: .72rem;
+    color: var(--muted);
+    width: 100%;
+    margin-top: .15rem;
+  }
+
+  .tool-independent-fields { margin-bottom: 1rem; }
+  .tool-independent-fields[hidden] { display: none; }
+
+  .tool-error {
+    font-family: var(--mono);
+    font-size: .76rem;
+    color: var(--red);
+    background: rgba(255,77,109,.08);
+    border: 1px solid rgba(255,77,109,.3);
+    border-radius: 10px;
+    padding: .65rem .8rem;
+    margin-bottom: 1rem;
+    line-height: 1.5;
+  }
+  .tool-error[hidden] { display: none; }
+
+  .tool-results[hidden] { display: none; }
+
+  .tool-status {
+    font-family: var(--mono);
+    font-size: .74rem;
+    color: var(--muted);
+    margin: -.3rem 0 1rem;
+    padding: .55rem .8rem;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+  .tool-status.tool-status-warn { color: var(--red); border-color: rgba(255,77,109,.35); }
+  .tool-status.tool-status-good { color: var(--green); border-color: rgba(61,255,160,.3); }
+
+  .tool-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .4rem;
+    width: 100%;
+    background: var(--accent);
+    color: var(--bg, #0b0b0f);
+    border: none;
+    border-radius: 10px;
+    padding: .75rem 1rem;
+    font-family: var(--mono);
+    font-weight: 700;
+    font-size: .78rem;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    cursor: pointer;
+    margin-top: .8rem;
+    transition: filter .18s, transform .18s;
+    min-height: 44px;
+  }
+  .tool-btn:hover { filter: brightness(1.08); }
+  .tool-btn:active { transform: scale(.98); }
+  [data-theme^="light"] .tool-btn { color: #fff; }
+
+  .tool-mini-table-wrap {
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    overflow-x: auto;
+    margin-top: 1rem;
+  }
+  .tool-mini-table-wrap table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--mono);
+    font-size: .82rem;
+  }
+  .tool-mini-table-wrap th {
+    text-align: left;
+    padding: .6rem .8rem;
+    background: var(--surface2);
+    color: var(--muted);
+    font-size: .62rem;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .tool-mini-table-wrap td {
+    padding: .55rem .8rem;
+    border-top: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  [data-theme^="light"] .tool-mini-table-wrap tbody tr:nth-child(even) { background: rgba(0,0,0,.02); }
+
+  .tool-card-sub-label {
+    font-family: var(--mono);
+    font-size: .64rem;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 1.1rem 0 .6rem;
+  }
+
+  /* "Required Days" (Target Balance) and "Estimated Recovery Days"
+     (Recovery Calculator) show a complete Year/Month/Day breakdown,
+     which reads longer than the compact single-line values the
+     shared .ps-value rule (white-space:nowrap + ellipsis) was built
+     for. Scoped to just these two result values by ID, so every
+     other .ps-value — in the Tools tab and elsewhere — keeps its
+     original single-line, ellipsis-on-overflow behavior unchanged. */
+  #tbcReqDays, #recDays {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+    line-height: 1.35;
+  }
+
+  @media (max-width: 480px) {
+    .tool-link-row { gap: .45rem; }
+    .tool-linked-badge { margin-left: 0; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════
+     SETTINGS TOOLBAR — Theme + Font Size
+     ══════════════════════════════════════════ -->
+<div class="settings-bar">
+
+  <!-- Theme switcher -->
+  <div class="settings-group">
+    <span class="settings-label">Theme</span>
+    <select class="theme-select" id="themeSelect" aria-label="Choose color theme">
+      <option value="midnight-gold">🌑 Midnight Gold</option>
+      <option value="ocean-blue">🌊 Ocean Blue</option>
+      <option value="emerald-neon">🟢 Emerald Neon</option>
+      <option value="royal-purple">🔮 Royal Purple</option>
+      <option value="light-clean">☀️ Clean Light</option>
+    </select>
+  </div>
+
+  <!-- Font size control -->
+  <div class="settings-group">
+    <span class="settings-label">Font Size</span>
+    <button class="font-btn" id="fontDecrease" title="Decrease font size">A−</button>
+    <span class="font-size-badge" id="fontSizeBadge">16px</span>
+    <button class="font-btn" id="fontIncrease" title="Increase font size">A+</button>
+    <button class="font-btn" id="fontReset" title="Reset font size" style="font-size:.65rem;font-weight:600;opacity:.75;">↺</button>
+  </div>
+
+</div>
+
+<div class="container">
+
+  <!-- Header -->
+  <header>
+    <div class="logo-chip"><span></span> Live Calculator</div>
+    <h1>Binary Options<br>Money Management</h1>
+    <p class="subtitle">Martingale Risk Strategy Calculator</p>
+  </header>
+
+  <!-- ══════════════════════════════════════════
+       TABS — Main / Summary
+       ══════════════════════════════════════════ -->
+  <div class="tabs-nav" id="tabsNav" role="tablist" aria-label="Calculator views">
+    <button type="button" class="tab-btn active" id="tabBtnMain" role="tab"
+            aria-selected="true" aria-controls="tabPanelMain">Main</button>
+    <button type="button" class="tab-btn" id="tabBtnSummary" role="tab"
+            aria-selected="false" aria-controls="tabPanelSummary">Summary</button>
+    <button type="button" class="tab-btn" id="tabBtnTools" role="tab"
+            aria-selected="false" aria-controls="tabPanelTools">Tools</button>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       MAIN TAB PANEL — all existing features,
+       completely untouched
+       ══════════════════════════════════════════ -->
+  <div class="tab-panel active" id="tabPanelMain" role="tabpanel" aria-labelledby="tabBtnMain">
+
+  <!-- 01 Portfolio Setup -->
+  <div class="card" style="animation-delay:.05s">
+    <div class="card-label">01 — Portfolio Setup</div>
+    <div class="input-grid">
+      <div class="field">
+        <label for="mainBalance">Main Balance</label>
+        <div class="input-wrap">
+          <span class="currency-sign">$</span>
+          <input type="number" id="mainBalance" placeholder="0.00" min="0" step="0.01" value="100">
+        </div>
+      </div>
+      <div class="field">
+        <label for="backupBalance">Backup Balance</label>
+        <div class="input-wrap">
+          <span class="currency-sign">$</span>
+          <input type="number" id="backupBalance" placeholder="0.00" min="0" step="0.01" value="0">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 02 Strategy -->
+  <div class="card" style="animation-delay:.12s">
+    <div class="card-label">02 — Strategy</div>
+    <div class="input-grid">
+      <div class="field">
+        <label for="strategy">Martingale Steps</label>
+        <select id="strategy" aria-label="Select Martingale strategy step count">
+          <option value="2">2-Step Martingale (30% / 70%)</option>
+          <option value="3">3-Step Martingale (12% / 26% / 62%)</option>
+          <option value="4">4-Step Martingale (4% / 10% / 30% / 56%)</option>
+          <option value="5">5-Step Martingale (2% / 5% / 11% / 25% / 57%)</option>
+          <option value="6" selected>6-Step Martingale (1% / 3% / 6% / 12% / 25% / 53%)</option>
+          <option value="7">7-Step Martingale (0.5% / 1.5% / 3% / 6% / 13% / 27% / 49%)</option>
+          <option value="8">8-Step Martingale (0.20% / 0.61% / 1.22% / 2.64% / 5.68% / 11.97% / 25.15% / 52.53%)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="winPercentage">Win Percentage</label>
+        <div class="input-wrap">
+          <input type="number" id="winPercentage" placeholder="92" min="0.01" max="100" step="0.01"
+                 value="92" inputmode="decimal" aria-label="Win percentage used to calculate profit for each investment">
+          <span class="percent-sign">%</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 03 Balance Breakdown -->
+  <div class="card" style="animation-delay:.2s">
+    <div class="card-label">03 — Balance Breakdown</div>
+    <div class="balance-display">
+      <div class="balance-item">
+        <div class="b-label">Main Balance</div>
+        <div class="b-value" id="dispMain">$0.00</div>
+      </div>
+      <div class="balance-item">
+        <div class="b-label">Backup Balance</div>
+        <div class="b-value" id="dispBackup">$0.00</div>
+      </div>
+      <div class="balance-item highlight">
+        <div class="b-label">Trade Balance</div>
+        <div class="b-value" id="dispTrade">$0.00</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 04 Martingale Steps table (existing — untouched) -->
+  <div class="card" style="animation-delay:.28s">
+    <div class="card-label">04 — Martingale Steps</div>
+    <div class="table-wrap">
+      <table id="martingaleTable">
+        <colgroup>
+          <col class="col-step">
+          <col class="col-invest">
+          <col class="col-pct">
+          <col class="col-profit">
+          <col class="col-loss">
+          <col class="col-cum">
+        </colgroup>
+        <thead>
+          <tr>
+            <th>Step</th>
+            <th>Investment</th>
+            <th>% OF MAIN BAL</th>
+            <th>Profit</th>
+            <th>Loss</th>
+            <th>Cum. P/L</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 05 Multi-Day Projection (NEW) -->
+  <div class="card" style="animation-delay:.36s">
+    <div class="card-label">05 — Multi-Day Martingale Projection</div>
+
+    <div class="proj-controls">
+
+      <!-- ── DURATION: Years + Months + Days, plus the underlying editable Number of Days ── -->
+      <div class="field">
+        <label for="projDays">Duration</label>
+        <div class="duration-ymd-row">
+          <div class="ymd-box">
+            <input type="number" id="projDurY" value="0" min="0" step="1" inputmode="numeric" aria-label="Years">
+            <span class="ymd-unit">Years</span>
+          </div>
+          <div class="ymd-box">
+            <input type="number" id="projDurM" value="0" min="0" step="1" inputmode="numeric" aria-label="Months">
+            <span class="ymd-unit">Months</span>
+          </div>
+          <div class="ymd-box">
+            <input type="number" id="projDurD" value="0" min="0" step="1" inputmode="numeric" aria-label="Days">
+            <span class="ymd-unit">Days</span>
+          </div>
+        </div>
+        <div class="duration-divider">= Number of Days</div>
+        <div class="days-input-wrap">
+          <div class="days-input-box">
+            <input
+              type="number"
+              id="projDays"
+              value="7"
+              min="1"
+              step="1"
+              inputmode="numeric"
+              placeholder="7"
+              aria-label="Number of days for the projection"
+              aria-describedby="daysHint">
+          </div>
+          <span class="days-unit-label">days</span>
+        </div>
+        <div class="days-hint" id="daysHint">Enter any number of days (1 or more), or use Years / Months / Days above</div>
+      </div>
+
+      <!-- ── CALENDAR DATE PICKER: Start Date ── -->
+      <div class="field">
+        <label id="startDateLabel">Start Date</label>
+        <div class="cal-wrapper">
+          <button class="cal-trigger" id="calTrigger" type="button" aria-haspopup="true" aria-labelledby="startDateLabel calDisplay">
+            <span class="cal-icon">📅</span>
+            <span class="cal-val" id="calDisplay">Select a date</span>
+            <span class="cal-clr" id="calClear" title="Clear date" role="button" tabindex="0" aria-label="Clear selected date">✕</span>
+          </button>
+          <div class="cal-panel" id="calPanel">
+            <div class="cal-header">
+              <button class="cal-nav" id="calPrev" type="button" aria-label="Previous month">‹</button>
+              <span class="cal-month-label" id="calMonthLabel"></span>
+              <button class="cal-nav" id="calNext" type="button" aria-label="Next month">›</button>
+            </div>
+            <div class="cal-dow">
+              <span>Su</span><span>Mo</span><span>Tu</span>
+              <span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
+            </div>
+            <div class="cal-grid" id="calGrid"></div>
+          </div>
+        </div>
+        <!-- Hidden input keeps existing parseDate() / saveState() API intact -->
+        <input type="hidden" id="projStartDate" value="">
+      </div>
+
+    </div>
+
+    <!-- ── Projection Summary Card ── -->
+    <div class="summary-card-wrap" id="summaryCard" tabindex="-1" aria-label="Summary">
+      <div class="proj-summary-header">
+        <span class="ps-dot"></span>
+        Summary · Up to Day <span id="summaryDayN">—</span>
+        <span class="summary-nav-btns">
+          <button type="button" class="nav-arrow-btn" id="summaryUpBtn" aria-label="Go to Main Balance input">↑</button>
+          <button type="button" class="nav-arrow-btn" id="summaryDownBtn" aria-label="Go to the last projection day">↓</button>
+        </span>
+      </div>
+      <div class="proj-summary" id="projSummary">
+        <div class="proj-summary-item">
+          <span class="ps-label">Main Balance</span>
+          <span class="ps-value ps-accent" id="sumMainBalance">—</span>
+          <span class="ps-sub">current main balance</span>
+        </div>
+        <div class="proj-summary-item">
+          <span class="ps-label">Backup Balance</span>
+          <span class="ps-value" id="sumBackupBalance">—</span>
+          <span class="ps-sub">current backup balance</span>
+        </div>
+        <div class="proj-summary-item">
+          <span class="ps-label">Total Days</span>
+          <span class="ps-value ps-accent" id="sumDays">—</span>
+          <span class="ps-sub">projection period</span>
+        </div>
+        <div class="proj-summary-item">
+          <span class="ps-label">Final Balance</span>
+          <span class="ps-value ps-green" id="sumFinalBalance">—</span>
+          <span class="ps-sub">balance at Day N</span>
+        </div>
+        <div class="proj-summary-item ps-highlight">
+          <span class="ps-label">Total Target Earned</span>
+          <span class="ps-value ps-accent2" id="sumTotalTarget">—</span>
+          <span class="ps-sub">sum of all daily targets</span>
+        </div>
+        <div class="proj-summary-item">
+          <span class="ps-label">Estimated Growth</span>
+          <span class="ps-value ps-green" id="sumGrowth">—</span>
+          <span class="ps-sub" id="sumGrowthPct">vs. Day 1 balance</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Win/Day Card ── -->
+    <div class="summary-card-wrap" id="winDayCard" tabindex="-1" aria-label="Win per Day">
+      <div class="proj-summary-header">
+        <span class="ps-dot"></span>
+        Win/Day
+      </div>
+      <div class="proj-summary" id="winDaySummary" style="grid-template-columns: 1fr;">
+        <div class="proj-summary-item ps-highlight">
+          <span class="ps-label">Win/Day</span>
+          <span class="ps-value ps-accent2" id="sumWinDay">—</span>
+          <span class="ps-sub">target on the last projected day</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="proj-table-wrap">
+      <table id="projectionTable">
+        <thead id="projHead"></thead>
+        <tbody id="projBody"></tbody>
+      </table>
+    </div>
+
+    <!-- Persistent nav container — lives outside #projBody so it survives
+         every dynamic table rebuild without duplicating or losing its listener. -->
+    <div class="bottom-nav-wrap">
+      <button type="button" class="nav-arrow-btn nav-arrow-btn-bottom" id="bottomUpBtn" aria-label="Back to Main Balance input">
+        <span class="nav-arrow-icon">↑</span>
+        <span class="nav-arrow-text">Back to Main Balance</span>
+      </button>
+    </div>
+  </div>
+
+  <p class="note">
+    ⚠️ This tool is for educational purposes only. Trading binary options involves significant risk.<br>
+    Past performance does not guarantee future results. Manage risk responsibly.
+  </p>
+
+  </div>
+  <!-- ── /MAIN TAB PANEL ── -->
+
+  <!-- ══════════════════════════════════════════
+       SUMMARY TAB PANEL — isolated "what-if" view.
+       Uses its own "Invest" input (never writes to
+       #mainBalance) to drive its own copy of the
+       Summary card + Win/Day card. Strategy / Win % /
+       Backup Balance / Days / Start Date are shared
+       read-only from the Main tab's current settings.
+       ══════════════════════════════════════════ -->
+  <div class="tab-panel" id="tabPanelSummary" role="tabpanel" aria-labelledby="tabBtnSummary" hidden>
+
+    <!-- Invest input -->
+    <div class="card" style="animation-delay:.05s">
+      <div class="card-label">Summary — Invest</div>
+      <div class="input-grid">
+        <div class="field">
+          <label for="investBalance">Invest</label>
+          <div class="input-wrap">
+            <span class="currency-sign">$</span>
+            <input type="number" id="investBalance" placeholder="0.00" min="0" step="0.01" value="100">
+          </div>
+        </div>
+        <div class="field">
+          <label for="strategyInvest">Martingale Steps</label>
+          <select id="strategyInvest" aria-label="Select Martingale strategy step count (Summary tab, isolated)">
+            <option value="2">2-Step Martingale (30% / 70%)</option>
+            <option value="3">3-Step Martingale (12% / 26% / 62%)</option>
+            <option value="4">4-Step Martingale (4% / 10% / 30% / 56%)</option>
+            <option value="5">5-Step Martingale (2% / 5% / 11% / 25% / 57%)</option>
+            <option value="6" selected>6-Step Martingale (1% / 3% / 6% / 12% / 25% / 53%)</option>
+            <option value="7">7-Step Martingale (0.5% / 1.5% / 3% / 6% / 13% / 27% / 49%)</option>
+            <option value="8">8-Step Martingale (0.20% / 0.61% / 1.22% / 2.64% / 5.68% / 11.97% / 25.15% / 52.53%)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="daysInvest">Duration</label>
+          <div class="duration-ymd-row">
+            <div class="ymd-box">
+              <input type="number" id="investDurY" value="0" min="0" step="1" inputmode="numeric" aria-label="Years (Summary tab, isolated)">
+              <span class="ymd-unit">Years</span>
+            </div>
+            <div class="ymd-box">
+              <input type="number" id="investDurM" value="0" min="0" step="1" inputmode="numeric" aria-label="Months (Summary tab, isolated)">
+              <span class="ymd-unit">Months</span>
+            </div>
+            <div class="ymd-box">
+              <input type="number" id="investDurD" value="0" min="0" step="1" inputmode="numeric" aria-label="Days (Summary tab, isolated)">
+              <span class="ymd-unit">Days</span>
+            </div>
+          </div>
+          <div class="duration-divider">= No. of Days</div>
+          <div class="input-wrap">
+            <input type="number" id="daysInvest" placeholder="7" min="1" step="1" value="7"
+                   inputmode="numeric" aria-label="Number of days for the Summary tab's isolated projection"
+                   aria-describedby="daysHintInvest">
+          </div>
+          <div class="days-hint" id="daysHintInvest">Enter any number of days (1 or more), or use Years / Months / Days above</div>
+        </div>
+      </div>
+      <p class="days-hint" style="margin-top:.6rem;">
+        Isolated from the Main tab — Invest, Martingale Steps and No. of Days here have no effect on Main Balance, the Main tab's Strategy, or its Number of Days.
+      </p>
+    </div>
+
+    <!-- Summary Card (Invest-driven) -->
+    <div class="summary-card-wrap" id="summaryCardInvest" tabindex="-1" aria-label="Summary (Invest)">
+      <div class="proj-summary-header">
+        <span class="ps-dot"></span>
+        Summary · Up to Day <span id="summaryDayNInvest">—</span>
+      </div>
+      <div class="proj-summary" id="projSummaryInvest">
+        <div class="proj-summary-item">
+          <span class="ps-label">Invest</span>
+          <span class="ps-value ps-accent" id="sumInvestBalance">—</span>
+          <span class="ps-sub">isolated investment amount</span>
+        </div>
+        <div class="proj-summary-item">
+          <span class="ps-label">Backup Balance</span>
+          <span class="ps-value" id="sumBackupBalanceInvest">—</span>
+          <span class="ps-sub">current backup balance</span>
+        </div>
+        <div class="proj-summary-item">
+          <span class="ps-label">Total Days</span>
+          <span class="ps-value ps-accent" id="sumDaysInvest">—</span>
+          <span class="ps-sub">projection period</span>
+        </div>
+        <div class="proj-summary-item">
+          <span class="ps-label">Final Balance</span>
+          <span class="ps-value ps-green" id="sumFinalBalanceInvest">—</span>
+          <span class="ps-sub">balance at Day N</span>
+        </div>
+        <div class="proj-summary-item ps-highlight">
+          <span class="ps-label">Total Target Earned</span>
+          <span class="ps-value ps-accent2" id="sumTotalTargetInvest">—</span>
+          <span class="ps-sub">sum of all daily targets</span>
+        </div>
+        <div class="proj-summary-item">
+          <span class="ps-label">Estimated Growth</span>
+          <span class="ps-value ps-green" id="sumGrowthInvest">—</span>
+          <span class="ps-sub" id="sumGrowthPctInvest">vs. Day 1 balance</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Win/Day Card (Invest-driven) -->
+    <div class="summary-card-wrap" id="winDayCardInvest" tabindex="-1" aria-label="Win per Day (Invest)">
+      <div class="proj-summary-header">
+        <span class="ps-dot"></span>
+        Win/Day
+      </div>
+      <div class="proj-summary" id="winDaySummaryInvest" style="grid-template-columns: 1fr;">
+        <div class="proj-summary-item ps-highlight">
+          <span class="ps-label">Win/Day</span>
+          <span class="ps-value ps-accent2" id="sumWinDayInvest">—</span>
+          <span class="ps-sub">target on the last projected day</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <!-- ── /SUMMARY TAB PANEL ── -->
+
+  <!-- ══════════════════════════════════════════
+       TOOLS TAB PANEL — three new, independent
+       calculators (Daily Profit Target, Target
+       Balance, Recovery Calculator). Each can
+       optionally link its Win % / Strategy /
+       Backup Balance (and Start Date, where
+       relevant) to the Main tab's current
+       settings, but never writes back to the
+       Main tab unless the user explicitly taps
+       a "Use in Main" button.
+       ══════════════════════════════════════════ -->
+  <div class="tab-panel" id="tabPanelTools" role="tabpanel" aria-labelledby="tabBtnTools" hidden>
+
+    <!-- ── Daily Profit Target ── -->
+    <div class="card" style="animation-delay:.05s">
+      <div class="card-label">Tools — Daily Profit Target</div>
+      <p class="tool-sub">Enter the daily profit you want, and this works backward through the selected Martingale strategy to find the Trade / Main Balance required to hit it.</p>
+
+      <div class="input-grid">
+        <div class="field">
+          <label for="dptTarget">Desired Daily Profit</label>
+          <div class="input-wrap">
+            <span class="currency-sign">$</span>
+            <input type="number" id="dptTarget" placeholder="0.00" min="0" step="0.01" inputmode="decimal"
+                   aria-label="Desired daily profit target">
+          </div>
+        </div>
+      </div>
+
+      <div class="tool-link-row">
+        <input type="checkbox" id="dptLinkMain" checked>
+        <label for="dptLinkMain">Use Main tab's Win %, Strategy &amp; Backup Balance</label>
+        <span class="tool-linked-badge" id="dptLinkedBadge">Linked to Main</span>
+        <div class="tool-linked-values" id="dptLinkedValues"></div>
+      </div>
+
+      <div class="tool-independent-fields" id="dptIndependentFields" hidden>
+        <div class="input-grid">
+          <div class="field">
+            <label for="dptWinPct">Win Percentage</label>
+            <div class="input-wrap">
+              <input type="number" id="dptWinPct" placeholder="92" min="0.01" max="100" step="0.01" inputmode="decimal"
+                     aria-label="Independent win percentage for Daily Profit Target">
+              <span class="percent-sign">%</span>
+            </div>
+          </div>
+          <div class="field">
+            <label for="dptStrategy">Martingale Steps</label>
+            <select id="dptStrategy" aria-label="Independent strategy for Daily Profit Target"></select>
+          </div>
+          <div class="field">
+            <label for="dptBackup">Backup Balance</label>
+            <div class="input-wrap">
+              <span class="currency-sign">$</span>
+              <input type="number" id="dptBackup" placeholder="0.00" min="0" step="0.01"
+                     aria-label="Independent backup balance for Daily Profit Target">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p class="tool-error" id="dptError" hidden></p>
+
+      <div class="tool-results" id="dptResults" hidden>
+        <div class="proj-summary-header"><span class="ps-dot"></span>Result</div>
+        <div class="proj-summary">
+          <div class="proj-summary-item ps-highlight">
+            <span class="ps-label">Required Main Balance</span>
+            <span class="ps-value ps-accent" id="dptReqMain">—</span>
+            <span class="ps-sub">capital needed for this target</span>
+          </div>
+          <div class="proj-summary-item">
+            <span class="ps-label">Backup Balance</span>
+            <span class="ps-value" id="dptReqBackup">—</span>
+          </div>
+          <div class="proj-summary-item">
+            <span class="ps-label">Required Trade Balance</span>
+            <span class="ps-value ps-accent" id="dptReqTrade">—</span>
+          </div>
+          <div class="proj-summary-item">
+            <span class="ps-label">Step 1 Investment</span>
+            <span class="ps-value" id="dptStep1">—</span>
+          </div>
+          <div class="proj-summary-item">
+            <span class="ps-label">Maximum Step Investment</span>
+            <span class="ps-value" id="dptMaxStep">—</span>
+          </div>
+          <div class="proj-summary-item">
+            <span class="ps-label">Target Daily Profit</span>
+            <span class="ps-value ps-green" id="dptTargetDisp">—</span>
+          </div>
+          <div class="proj-summary-item">
+            <span class="ps-label">Selected Strategy</span>
+            <span class="ps-value" id="dptStrategyDisp">—</span>
+          </div>
+          <div class="proj-summary-item">
+            <span class="ps-label">Win Percentage</span>
+            <span class="ps-value" id="dptWinDisp">—</span>
+          </div>
+        </div>
+
+        <div class="tool-card-sub-label">Martingale Step Table at Required Balance</div>
+        <div class="tool-mini-table-wrap">
+          <table>
+            <thead><tr><th>Step</th><th>Investment</th><th>% of Trade</th></tr></thead>
+            <tbody id="dptStepsBody"></tbody>
+          </table>
+        </div>
+
+        <button type="button" class="tool-btn" id="dptUseMain">Use Required Main Balance in Main Calculator</button>
+      </div>
+    </div>
+
+    <!-- ── Target Balance Calculator ── -->
+    <div class="card" style="animation-delay:.1s">
+      <div class="card-label">Tools — Target Balance</div>
+      <p class="tool-sub">Enter a Starting Balance and a Target Balance to estimate how many days it takes to reach it, using the same daily compounding projection as the Main tab.</p>
+
+      <div class="input-grid">
+        <div class="field">
+          <label for="tbcStart">Starting Balance</label>
+          <div class="input-wrap">
+            <span class="currency-sign">$</span>
+            <input type="number" id="tbcStart" placeholder="0.00" min="0" step="0.01" value="100" inputmode="decimal"
+                   aria-label="Starting balance for Target Balance calculator">
+          </div>
+        </div>
+        <div class="field">
+          <label for="tbcTarget">Target Balance</label>
+          <div class="input-wrap">
+            <span class="currency-sign">$</span>
+            <input type="number" id="tbcTarget" placeholder="0.00" min="0" step="0.01" inputmode="decimal"
+                   aria-label="Target balance to reach">
+          </div>
+        </div>
+      </div>
+
+      <div class="tool-link-row">
+        <input type="checkbox" id="tbcLinkMain" checked>
+        <label for="tbcLinkMain">Use Main tab's Win %, Strategy, Backup Balance &amp; Start Date</label>
+        <span class="tool-linked-badge" id="tbcLinkedBadge">Linked to Main</span>
+        <div class="tool-linked-values" id="tbcLinkedValues"></div>
+      </div>
+
+      <div class="tool-independent-fields" id="tbcIndependentFields" hidden>
+        <div class="input-grid">
+          <div class="field">
+            <label for="tbcWinPct">Win Percentage</label>
+            <div class="input-wrap">
+              <input type="number" id="tbcWinPct" placeholder="92" min="0.01" max="100" step="0.01" inputmode="decimal"
+                     aria-label="Independent win percentage for Target Balance calculator">
+              <span class="percent-sign">%</span>
+            </div>
+          </div>
+          <div class="field">
+            <label for="tbcStrategy">Martingale Steps</label>
+            <select id="tbcStrategy" aria-label="Independent strategy for Target Balance calculator"></select>
+          </div>
+          <div class="field">
+            <label for="tbcBackup">Backup Balance</label>
+            <div class="input-wrap">
+              <span class="currency-sign">$</span>
+              <input type="number" id="tbcBackup" placeholder="0.00" min="0" step="0.01"
+                     aria-label="Independent backup balance for Target Balance calculator">
+            </div>
+          </div>
+          <div class="field">
+            <label id="tbcStartDateLabel">Start Date</label>
+            <div class="cal-wrapper tbc-cal-wrapper">
+              <button class="cal-trigger" id="tbcCalTrigger" type="button" aria-haspopup="true" aria-labelledby="tbcStartDateLabel tbcCalDisplay">
+                <span class="cal-icon">📅</span>
+                <span class="cal-val" id="tbcCalDisplay">Select a date</span>
+                <span class="cal-clr" id="tbcCalClear" title="Clear date" role="button" tabindex="0" aria-label="Clear independent start date for Target Balance calculator">✕</span>
+              </button>
+              <div class="cal-panel" id="tbcCalPanel">
+                <div class="cal-header">
+                  <button class="cal-nav" id="tbcCalPrev" type="button" aria-label="Previous month">‹</button>
+                  <span class="cal-month-label" id="tbcCalMonthLabel"></span>
+                  <button class="cal-nav" id="tbcCalNext" type="button" aria-label="Next month">›</button>
+                </div>
+                <div class="cal-dow">
+                  <span>Su</span><span>Mo</span><span>Tu</span>
+                  <span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
+                </div>
+                <div class="cal-grid" id="tbcCalGrid"></div>
+              </div>
+            </div>
+            <!-- Hidden input keeps calcTargetBalance() / saveState() / loadState() reading '#tbcStartDate'.value exactly as before -->
+            <input type="hidden" id="tbcStartDate" value="">
+          </div>
+        </div>
+      </div>
+
+      <p class="tool-error" id="tbcError" hidden></p>
+      <p class="tool-status" id="tbcStatus" hidden></p>
+
+      <div class="tool-results" id="tbcResults" hidden>
+        <div class="proj-summary-header"><span class="ps-dot"></span>Result</div>
+        <div class="proj-summary">
+          <div class="proj-summary-item">
+            <span class="ps-label">Starting Balance</span>
+            <span class="ps-value" id="tbcStartDisp">—</span>
+          </div>
+          <div class="proj-summary-item">
+            <span class="ps-label">Target Balance</span>
+            <span class="ps-value" id="tbcTargetDisp">—</span>
+          </div>
+          <div class="proj-summary-item ps-highlight">
+            <span class="ps-label">Required Days</span>
+            <span class="ps-value ps-accent" id="tbcReqDays">—</span>
+            <span class="ps-sub" id="tbcReqDaysSub"></span>
+          </div>
+          <div class="proj-summary-item">
+            <span class="ps-label">Estimated Target Date</span>
+            <span class="ps-value ps-accent" id="tbcTargetDate">—</span>
+          </div>
+          <div class="proj-summary-item">
+            <span class="ps-label">Initial Daily Target</span>
+            <span class="ps-value" id="tbcInitialTarget">—</span>
+          </div>
+          <div class="proj-summary-item">
+            <span class="ps-label">Final Daily Target</span>
+            <span class="ps-value" id="tbcFinalTarget">—</span>
+          </div>
+          <div class="proj-summary-item">
+            <span class="ps-label">Final Projected Balance</span>
+            <span class="ps-value ps-green" id="tbcFinalBalance">—</span>
+          </div>
+          <div class="proj-summary-item">
+            <span class="ps-label">Total Profit</span>
+            <span class="ps-value ps-green" id="tbcTotalProfit">—</span>
+          </div>
+          <div class="proj-summary-item">
+            <span class="ps-label">Total Growth %</span>
+            <span class="ps-value ps-green" id="tbcGrowthPct">—</span>
+          </div>
+          <div class="proj-summary-item">
+            <span class="ps-label">Selected Strategy</span>
+            <span class="ps-value" id="tbcStrategyDisp">—</span>
+          </div>
+          <div class="proj-summary-item">
+            <span class="ps-label">Win Percentage</span>
+            <span class="ps-value" id="tbcWinDisp">—</span>
+          </div>
+        </div>
+
+        <div class="tool-card-sub-label">Milestone Preview</div>
+        <div class="tool-mini-table-wrap">
+          <table>
+            <thead><tr><th>Milestone</th><th>Balance</th><th>Date</th></tr></thead>
+            <tbody id="tbcMilestoneBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Recovery Calculator ── -->
+    <div class="card" style="animation-delay:.15s">
+      <div class="card-label">Tools — Recovery Calculator</div>
+      <p class="tool-sub">Estimate what it takes to recover from a loss — the required recovery amount, and roughly how many days it would take using the current strategy and Win Percentage.</p>
+
+      <div class="input-grid">
+        <div class="field">
+          <label for="recLoss">Loss Amount</label>
+          <div class="input-wrap">
+            <span class="currency-sign">$</span>
+            <input type="number" id="recLoss" placeholder="0.00" min="0" step="0.01" inputmode="decimal"
+                   aria-label="Amount lost that needs to be recovered">
+          </div>
+        </div>
+        <div class="field">
+          <label for="recCurrent">Current Balance</label>
+          <div class="input-wrap">
+            <span class="currency-sign">$</span>
+            <input type="number" id="recCurrent" placeholder="0.00" min="0" step="0.01" value="100" inputmode="decimal"
+                   aria-label="Current balance after the loss">
+          </div>
+        </div>
+        <div class="field">
+          <label for="recDailyTarget">Daily Recovery Target (optional)</label>
+          <div class="input-wrap">
+            <span class="currency-sign">$</span>
+            <input type="number" id="recDailyTarget" placeholder="0.00" min="0" step="0.01" inputmode="decimal"
+                   aria-label="Optional fixed daily recovery target">
+          </div>
+        </div>
+      </div>
+
+      <div class="tool-link-row">
+        <input type="checkbox" id="recLinkMain" checked>
+        <label for="recLinkMain">Use Main tab's Win %, Strategy &amp; Backup Balance</label>
+        <span class="tool-linked-badge" id="recLinkedBadge">Linked to Main</span>
+        <div class="tool-linked-values" id="recLinkedValues"></div>
+      </div>
+
+      <div class="tool-independent-fields" id="recIndependentFields" hidden>
+        <div class="input-grid">
+          <div class="field">
+            <label for="recWinPct">Win Percentage</label>
+            <div class="input-wrap">
+              <input type="number" id="recWinPct" placeholder="92" min="0.01" max="100" step="0.01" inputmode="decimal"
+                     aria-label="Independent win percentage for Recovery calculator">
+              <span class="percent-sign">%</span>
+            </div>
+          </div>
+          <div class="field">
+            <label for="recStrategy">Martingale Steps</label>
+            <select id="recStrategy" aria-label="Independent strategy for Recovery calculator"></select>
+          </div>
+          <div class="field">
+            <label for="recBackup">Backup Balance</label>
+            <div class="input-wrap">
+              <span class="currency-sign">$</span>
+              <input type="number" id="recBackup" placeholder="0.00" min="0" step="0.01"
+                     aria-label="Independent backup balance for Recovery calculator">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p class="tool-error" id="recError" hidden></p>
+      <p class="tool-status" id="recStatus" hidden></p>
+
+      <div class="tool-results" id="recResults" hidden>
+        <div class="proj-summary-header"><span class="ps-dot"></span>Recovery Summary</div>
+        <div class="proj-summary">
+          <div class="proj-summary-item">
+            <span class="ps-label">Amount Lost</span>
+            <span class="ps-value" id="recAmountLost">—</span>
+          </div>
+          <div class="proj-summary-item">
+            <span class="ps-label">Current Balance</span>
+            <span class="ps-value" id="recCurrentDisp">—</span>
+          </div>
+          <div class="proj-summary-item">
+            <span class="ps-label">Loss vs. Current Balance</span>
+            <span class="ps-value" id="recPctLoss">—</span>
+          </div>
+          <div class="proj-summary-item ps-highlight">
+            <span class="ps-label">Target Balance After Recovery</span>
+            <span class="ps-value ps-accent" id="recTargetBalance">—</span>
+          </div>
+          <div class="proj-summary-item">
+            <span class="ps-label">Initial Daily Profit</span>
+            <span class="ps-value" id="recInitialDaily">—</span>
+          </div>
+          <div class="proj-summary-item">
+            <span class="ps-label">Estimated Recovery Days</span>
+            <span class="ps-value ps-accent" id="recDays">—</span>
+            <span class="ps-sub" id="recDaysSub"></span>
+          </div>
+          <div class="proj-summary-item">
+            <span class="ps-label">Estimated Recovery Date</span>
+            <span class="ps-value ps-accent" id="recDate">—</span>
+          </div>
+          <div class="proj-summary-item">
+            <span class="ps-label">Total Profit Required</span>
+            <span class="ps-value ps-green" id="recTotalProfit">—</span>
+          </div>
+          <div class="proj-summary-item">
+            <span class="ps-label">Projected Balance at Recovery</span>
+            <span class="ps-value ps-green" id="recFinalBalance">—</span>
+          </div>
+          <div class="proj-summary-item">
+            <span class="ps-label">Growth Required %</span>
+            <span class="ps-value ps-green" id="recGrowthPct">—</span>
+          </div>
+        </div>
+
+        <div class="tool-card-sub-label" id="recFixedTargetLabel" hidden>At Fixed Daily Recovery Target</div>
+        <div class="proj-summary" id="recFixedTargetSummary" hidden>
+          <div class="proj-summary-item">
+            <span class="ps-label">Days at Fixed Target</span>
+            <span class="ps-value ps-accent" id="recFixedDays">—</span>
+          </div>
+          <div class="proj-summary-item">
+            <span class="ps-label">Date at Fixed Target</span>
+            <span class="ps-value ps-accent" id="recFixedDate">—</span>
+          </div>
+        </div>
+
+        <div class="tool-card-sub-label">Martingale Risk Information</div>
+        <div class="proj-summary">
+          <div class="proj-summary-item">
+            <span class="ps-label">Selected Strategy</span>
+            <span class="ps-value" id="recStrategyDisp">—</span>
+          </div>
+          <div class="proj-summary-item">
+            <span class="ps-label">Step 1 Investment</span>
+            <span class="ps-value" id="recStep1">—</span>
+          </div>
+          <div class="proj-summary-item">
+            <span class="ps-label">Maximum Step Investment</span>
+            <span class="ps-value" id="recMaxStep">—</span>
+          </div>
+          <div class="proj-summary-item">
+            <span class="ps-label">Number of Steps</span>
+            <span class="ps-value" id="recNumSteps">—</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <p class="tool-sub" style="text-align:center;">
+      ⚠️ These calculators are estimates for educational purposes only and do not guarantee results. Recovering losses by increasing risk is not recommended — trade responsibly.
+    </p>
+
+  </div>
+  <!-- ── /TOOLS TAB PANEL ── -->
+
+</div>
+
+<script>
+  /* ═══════════════════════
+     STRATEGIES — unchanged
+     ═══════════════════════ */
+  const STRATEGIES = {
+    2: [ { pct: 0.30 }, { pct: 0.70 } ],
+    3: [ { pct: 0.12 }, { pct: 0.26 }, { pct: 0.62 } ],
+    4: [ { pct: 0.04 }, { pct: 0.10 }, { pct: 0.30 }, { pct: 0.56 } ],
+    5: [ { pct: 0.02 }, { pct: 0.05 }, { pct: 0.11 }, { pct: 0.25 }, { pct: 0.57 } ],
+    6: [ { pct: 0.01 }, { pct: 0.03 }, { pct: 0.06 }, { pct: 0.12 }, { pct: 0.25 }, { pct: 0.53 } ],
+    7: [ { pct: 0.005 }, { pct: 0.015 }, { pct: 0.03 }, { pct: 0.06 }, { pct: 0.13 }, { pct: 0.27 }, { pct: 0.49 } ],
+    8: [ { pct: 0.0020 }, { pct: 0.0061 }, { pct: 0.0122 }, { pct: 0.0264 },
+         { pct: 0.0568 }, { pct: 0.1197 }, { pct: 0.2515 }, { pct: 0.5253 } ]
+  };
+
+  const STORAGE_KEY = 'binaryOptions_v1';
+  const WIN_PCT_DEFAULT = 92;
+
+  /* ── Helpers ── */
+  const fmt   = (n) => '$' + Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const pct   = (n) => (n * 100).toFixed(2) + '%';
+  const flash = (el) => { el.classList.remove('val-flash'); void el.offsetWidth; el.classList.add('val-flash'); };
+
+  /* Reads the user-configurable Win Percentage (defaults to 92% when
+     the field is empty, non-numeric, or out of range) and returns it
+     as a 0–1 fraction, ready to multiply against an investment amount.
+     Used for both the Martingale Steps table's profit column and the
+     Multi-Day Projection's daily target — one setting drives profit
+     for every investment throughout the app. */
+  function getWinPercentage() {
+    const raw = parseFloat(document.getElementById('winPercentage').value);
+    if (isNaN(raw) || raw <= 0) return WIN_PCT_DEFAULT / 100;
+    return Math.min(100, raw) / 100;
+  }
+
+  /* ── Persist & restore ── */
+  function saveState() {
+    const investEl         = document.getElementById('investBalance');
+    const strategyInvestEl = document.getElementById('strategyInvest');
+    const daysInvestEl     = document.getElementById('daysInvest');
+    const state = {
+      main:      document.getElementById('mainBalance').value,
+      backup:    document.getElementById('backupBalance').value,
+      strategy:  document.getElementById('strategy').value,
+      winPct:    document.getElementById('winPercentage').value,
+      projDays:  document.getElementById('projDays').value,
+      projStart: document.getElementById('projStartDate').value,
+      theme:     document.documentElement.getAttribute('data-theme') || 'midnight-gold',
+      fontSize:  currentFontSize,
+      // Summary tab's own isolated fields — stored separately so
+      // they never read from or write to "main" / "strategy" /
+      // "projDays" above.
+      invest:         investEl ? investEl.value : undefined,
+      strategyInvest: strategyInvestEl ? strategyInvestEl.value : undefined,
+      daysInvest:     daysInvestEl ? daysInvestEl.value : undefined,
+      // Tools tab — backward-compatible extension. Grouped under its
+      // own "tools" key so older saved states (without it) load fine
+      // via the same `!= null` guards used everywhere else in
+      // loadState(); a missing "tools" object just leaves every
+      // Tools-tab field at its HTML default.
+      tools: readToolsState()
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }
+
+  /* Reads every Tools-tab field into a plain object for persistence.
+     Guards each element lookup so this is a no-op (returns {}) if
+     the Tools tab isn't present in the DOM for any reason. */
+  function readToolsState() {
+    const get = (id) => { const el = document.getElementById(id); return el ? el.value : undefined; };
+    const getChecked = (id) => { const el = document.getElementById(id); return el ? el.checked : undefined; };
+    if (!document.getElementById('tabPanelTools')) return {};
+    return {
+      dptTarget: get('dptTarget'), dptLinkMain: getChecked('dptLinkMain'),
+      dptWinPct: get('dptWinPct'), dptStrategy: get('dptStrategy'), dptBackup: get('dptBackup'),
+      tbcStart: get('tbcStart'), tbcTarget: get('tbcTarget'), tbcLinkMain: getChecked('tbcLinkMain'),
+      tbcWinPct: get('tbcWinPct'), tbcStrategy: get('tbcStrategy'), tbcBackup: get('tbcBackup'), tbcStartDate: get('tbcStartDate'),
+      recLoss: get('recLoss'), recCurrent: get('recCurrent'), recDailyTarget: get('recDailyTarget'), recLinkMain: getChecked('recLinkMain'),
+      recWinPct: get('recWinPct'), recStrategy: get('recStrategy'), recBackup: get('recBackup')
+    };
+  }
+
+  function loadState() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      const s = JSON.parse(raw);
+      if (s.main      != null) document.getElementById('mainBalance').value   = s.main;
+      if (s.backup    != null) document.getElementById('backupBalance').value = s.backup;
+      if (s.strategy  != null) document.getElementById('strategy').value      = s.strategy;
+      if (s.winPct    != null) document.getElementById('winPercentage').value = s.winPct;
+      if (s.projDays  != null) document.getElementById('projDays').value      = s.projDays;
+      if (s.projStart != null) document.getElementById('projStartDate').value = s.projStart;
+      if (s.theme     != null) applyTheme(s.theme);
+      if (s.fontSize  != null) applyFontSize(s.fontSize);
+      const investEl = document.getElementById('investBalance');
+      if (investEl && s.invest != null) investEl.value = s.invest;
+      const strategyInvestEl = document.getElementById('strategyInvest');
+      if (strategyInvestEl && s.strategyInvest != null) strategyInvestEl.value = s.strategyInvest;
+      const daysInvestEl = document.getElementById('daysInvest');
+      if (daysInvestEl && s.daysInvest != null) daysInvestEl.value = s.daysInvest;
+
+      /* Tools tab — restore only if present (older saved states
+         simply have no "tools" key, so every field below keeps its
+         HTML default, exactly like every other new-property case in
+         this function). populateToolStrategySelects() must have
+         already run (it's called before loadState() in Boot) so the
+         *Strategy selects below actually have options to set. */
+      if (s.tools && document.getElementById('tabPanelTools')) {
+        const t = s.tools;
+        const setVal = (id, v) => { const el = document.getElementById(id); if (el && v != null) el.value = v; };
+        const setChecked = (id, v) => { const el = document.getElementById(id); if (el && v != null) el.checked = v; };
+        setVal('dptTarget', t.dptTarget); setChecked('dptLinkMain', t.dptLinkMain);
+        setVal('dptWinPct', t.dptWinPct); setVal('dptStrategy', t.dptStrategy); setVal('dptBackup', t.dptBackup);
+        setVal('tbcStart', t.tbcStart); setVal('tbcTarget', t.tbcTarget); setChecked('tbcLinkMain', t.tbcLinkMain);
+        setVal('tbcWinPct', t.tbcWinPct); setVal('tbcStrategy', t.tbcStrategy); setVal('tbcBackup', t.tbcBackup); setVal('tbcStartDate', t.tbcStartDate);
+        if (window.__tbcCalRestore) window.__tbcCalRestore(t.tbcStartDate);
+        setVal('recLoss', t.recLoss); setVal('recCurrent', t.recCurrent); setVal('recDailyTarget', t.recDailyTarget); setChecked('recLinkMain', t.recLinkMain);
+        setVal('recWinPct', t.recWinPct); setVal('recStrategy', t.recStrategy); setVal('recBackup', t.recBackup);
+      }
+    } catch (e) {}
+  }
+
+  /* ══════════════════════════════════════════════════════
+     EXISTING calculate() — logic untouched
+     ══════════════════════════════════════════════════════ */
+  function calculate() {
+    const main   = parseFloat(document.getElementById('mainBalance').value)   || 0;
+    const backup = parseFloat(document.getElementById('backupBalance').value) || 0;
+    const strat  = parseInt(document.getElementById('strategy').value);
+    const trade  = Math.max(0, main - backup);
+
+    document.getElementById('dispMain').textContent   = fmt(main);
+    document.getElementById('dispBackup').textContent = fmt(backup);
+    const dTrade = document.getElementById('dispTrade');
+    dTrade.textContent = fmt(trade);
+    flash(dTrade);
+
+    const steps  = STRATEGIES[strat];
+    const winPct = getWinPercentage();
+    const tbody = document.getElementById('tableBody');
+    tbody.innerHTML = '';
+
+    // $1 minimum investment scaling
+    let scaleFactor = 1;
+    if (trade > 0) {
+      const smallestPct = Math.min(...steps.map(s => s.pct));
+      const smallestRaw = trade * smallestPct;
+      if (smallestRaw < 1) scaleFactor = 1 / smallestRaw;
+    }
+
+    steps.forEach((step, i) => {
+      const invest  = trade * step.pct * scaleFactor;
+      const profit  = invest * winPct;
+      const loss    = invest;
+      const pctMain = main > 0 ? (trade * step.pct) / main : 0;
+
+      const prevLosses = steps.slice(0, i).reduce((acc, s) => acc + trade * s.pct * scaleFactor, 0);
+      const netAtStep  = profit - prevLosses;
+      const cumClass   = netAtStep >= 0 ? 'cum-positive' : 'cum-negative';
+      const cumSign    = netAtStep >= 0 ? '+' : '-';
+      const totalLoss  = prevLosses + invest;
+      const isOver     = trade > 0 && invest > trade;
+
+      const tr = document.createElement('tr');
+      if (isOver) tr.classList.add('over-budget');
+
+      tr.innerHTML = `
+        <td>
+          <span class="step-badge">${i + 1}</span>
+          ${isOver ? '<span class="warn-badge">⚠ Exceeds Trade Bal.</span>' : ''}
+        </td>
+        <td><span class="amount">${fmt(invest)}</span></td>
+        <td><span class="pct">${pct(pctMain)}</span></td>
+        <td><span class="profit profit-val">+${fmt(profit)}</span></td>
+        <td>
+          <span class="cell-main loss">-${fmt(loss)}</span>
+          <span class="cell-sub neg">Total lost: -${fmt(totalLoss)}</span>
+        </td>
+        <td><span class="${cumClass}">${cumSign}${fmt(netAtStep)}</span></td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    buildProjectionTable();
+    saveState();
+  }
+
+  /* ══════════════════════════════════════════════════════
+     DATE HELPERS
+     ══════════════════════════════════════════════════════ */
+  function parseDate(str) {
+    if (!str) return null;
+    const m = str.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
+    if (!m) return null;
+    const d = +m[1], mo = +m[2] - 1, y = +m[3];
+    const dt = new Date(Date.UTC(y, mo, d));
+    if (dt.getUTCFullYear() !== y || dt.getUTCMonth() !== mo || dt.getUTCDate() !== d) return null;
+    return dt;
+  }
+
+  function formatDate(dt) {
+    return String(dt.getUTCDate()).padStart(2,'0') + '-'
+         + String(dt.getUTCMonth()+1).padStart(2,'0') + '-'
+         + dt.getUTCFullYear();
+  }
+
+  function addDays(dt, n) {
+    const r = new Date(dt.getTime());
+    r.setUTCDate(r.getUTCDate() + n);
+    return r;
+  }
+
+  /* ══════════════════════════════════════════════════════
+     PROJECTION STEP CALCULATION
+     Step 1  = Balance × step[0].pct
+     Step 2  = (Balance − Step1) × step[1].pct
+     Step k  = (Remaining) × step[k].pct
+     Last    = Remaining (absorb the rest)
+     ══════════════════════════════════════════════════════ */
+  function calcProjectionSteps(balance, steps) {
+    const vals = [];
+    let rem = balance;
+    for (let i = 0; i < steps.length; i++) {
+      const val = (i === steps.length - 1) ? Math.max(0, rem) : rem * steps[i].pct;
+      vals.push(val);
+      rem -= val;
+    }
+    return vals;
+  }
+
+  /* ══════════════════════════════════════════════════════
+     BUILD PROJECTION TABLE
+     Compounding multi-day logic:
+       Day 1 Balance = Trade Balance (Main − Backup)
+       Day N Balance = Day(N-1) Balance + Day(N-1) Target
+       Target        = Win Percentage (default 92%) of Step 1 for that day's Balance
+       All step values recalculate per day using that day's Balance
+     ══════════════════════════════════════════════════════ */
+  function buildProjectionTable() {
+    const main      = parseFloat(document.getElementById('mainBalance').value)   || 0;
+    const backup    = parseFloat(document.getElementById('backupBalance').value) || 0;
+    const strat     = parseInt(document.getElementById('strategy').value);
+    const daysRaw   = parseInt(document.getElementById('projDays').value);
+    const startStr  = document.getElementById('projStartDate').value.trim();
+
+    const trade  = Math.max(0, main - backup);
+    const steps  = STRATEGIES[strat];
+    const nSteps = steps.length;
+    const days   = (!isNaN(daysRaw) && daysRaw >= 1) ? Math.min(PROJ_DAYS_MAX, daysRaw) : 0;
+    const winPct = getWinPercentage();
+
+    const projHead = document.getElementById('projHead');
+    const projBody = document.getElementById('projBody');
+
+    /* Build header row */
+    let hdr = "<tr><th>Day's</th><th>Balance</th><th>Target</th>";
+    for (let s = 1; s <= nSteps; s++) hdr += `<th class="th-step">Step ${s}</th>`;
+    hdr += '<th>Date</th></tr>';
+    projHead.innerHTML = hdr;
+
+    /* Empty state */
+    if (days < 1) {
+      projBody.innerHTML = `
+        <tr class="proj-empty-row">
+          <td colspan="${3 + nSteps + 1}">
+            Enter the number of days above to generate the projection table.
+          </td>
+        </tr>`;
+      updateProjectionSummary(0, 0, 0, 0);
+      buildInvestSummary();
+      refreshToolsCalculators();
+      return;
+    }
+
+    const startDate = parseDate(startStr);
+
+    let html        = '';
+    let dayBalance  = trade;   // Day 1 starts at Trade Balance
+    let totalTarget = 0;       // accumulated alongside the row build below —
+                                // reused by the Summary card so the compounding
+                                // loop only has to run once per recalculation
+                                // instead of twice (perf: matters most at large day counts)
+    let lastTarget  = 0;       // TARGET value of the final projected day —
+                                // reused by the Win/Day card below
+
+    for (let d = 0; d < days; d++) {
+      /* Recalculate steps fresh for this day's balance */
+      const stepVals = calcProjectionSteps(dayBalance, steps);
+
+      /* Target = Win Percentage of Step 1 for THIS day (default 92%) */
+      const target = stepVals[0] * winPct;
+      totalTarget += target;
+      lastTarget = target;
+
+      const dateLabel = startDate ? formatDate(addDays(startDate, d)) : '—';
+
+      html += '<tr>';
+      html += `<td><span class="day-badge">Day ${d + 1}</span></td>`;
+      html += `<td><span class="proj-balance">${fmt(dayBalance)}</span></td>`;
+      html += `<td><span class="proj-target">${fmt(target)}</span></td>`;
+      for (let s = 0; s < nSteps; s++) {
+        html += `<td><span class="proj-step">${fmt(stepVals[s])}</span></td>`;
+      }
+      html += `<td><span class="proj-date">${dateLabel}</span></td>`;
+      html += '</tr>';
+
+      /* Carry forward: next day's balance = this day's balance + this day's target */
+      dayBalance = dayBalance + target;
+    }
+
+    projBody.innerHTML = html;
+
+    /* ── Update Summary Card (reuses the totals already computed
+       above instead of re-running the compounding loop again) ── */
+    updateProjectionSummary(days, trade, dayBalance, totalTarget, lastTarget);
+
+    /* ── Keep the isolated Summary tab (Invest-driven) in sync
+       whenever any shared setting (Strategy / Win % / Backup /
+       Days / Start Date) changes. It reads #investBalance itself,
+       never #mainBalance, so Main tab values stay untouched. ── */
+    buildInvestSummary();
+
+    /* ── Keep any Tools-tab calculator that is linked to the Main
+       tab in sync too. Each calculator re-checks its own "linked"
+       checkbox internally, so an independently-configured
+       calculator is left untouched by Main-tab changes. ── */
+    refreshToolsCalculators();
+  }
+
+  /* ══════════════════════════════════════════════════════
+     PROJECTION SUMMARY CARD
+     Receives the final balance / total target already computed
+     by buildProjectionTable()'s single pass over the days — no
+     second compounding loop needed here.
+     ══════════════════════════════════════════════════════ */
+  function updateProjectionSummary(days, startBalance, finalBalance, totalTarget, lastTarget) {
+    const setEl = (id, val) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = val;
+    };
+
+    /* Main Balance / Backup Balance always mirror the current input
+       values — they are not derived from the projection, so they are
+       kept in sync regardless of projection day count or state. */
+    const mainVal   = parseFloat(document.getElementById('mainBalance').value)   || 0;
+    const backupVal = parseFloat(document.getElementById('backupBalance').value) || 0;
+    setEl('sumMainBalance', fmt(mainVal));
+    setEl('sumBackupBalance', fmt(backupVal));
+    ['sumMainBalance', 'sumBackupBalance'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) flash(el);
+    });
+
+    /* Clear / empty state */
+    if (!days || days < 1 || startBalance <= 0) {
+      setEl('summaryDayN', '—');
+      setEl('sumDays', '—');
+      setEl('sumFinalBalance', '—');
+      setEl('sumTotalTarget', '—');
+      setEl('sumGrowth', '—');
+      setEl('sumGrowthPct', 'vs. Day 1 balance');
+      setEl('sumWinDay', '—');
+      return;
+    }
+
+    const growth    = finalBalance - startBalance;
+    const growthPct = startBalance > 0 ? ((growth / startBalance) * 100).toFixed(2) : '0.00';
+
+    setEl('summaryDayN', days);
+    setEl('sumDays', days + (days === 1 ? ' day' : ' days'));
+    setEl('sumFinalBalance', fmt(finalBalance));
+    setEl('sumTotalTarget', fmt(totalTarget));
+    setEl('sumGrowth', '+' + fmt(growth));
+    setEl('sumGrowthPct', '+' + growthPct + '% vs. Day 1');
+    setEl('sumWinDay', fmt(lastTarget || 0));
+
+    /* Flash animation on values */
+    ['sumFinalBalance','sumTotalTarget','sumGrowth','sumWinDay'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) flash(el);
+    });
+  }
+
+  /* ══════════════════════════════════════════════════════
+     SUMMARY TAB — Invest-driven calculation (isolated)
+     Mirrors the same compounding math as buildProjectionTable()
+     / updateProjectionSummary(), but starts from the Summary
+     tab's own #investBalance input instead of #mainBalance, uses
+     its own #strategyInvest select instead of #strategy, and its
+     own #daysInvest input instead of #projDays.
+     Win %, Backup Balance and Start Date are still shared/
+     read-only from the current settings — only the starting
+     balance ("Invest"), the Martingale Steps choice, and the
+     day count ("No. of Days") are isolated, and none of them
+     read from or write to #mainBalance / #strategy / #projDays.
+     ══════════════════════════════════════════════════════ */
+  function buildInvestSummary() {
+    const investEl = document.getElementById('investBalance');
+    if (!investEl) return; // Summary tab not present — no-op
+
+    const stratEl  = document.getElementById('strategyInvest');
+    const daysEl   = document.getElementById('daysInvest');
+    const invest   = parseFloat(investEl.value) || 0;
+    const backup   = parseFloat(document.getElementById('backupBalance').value) || 0;
+    const strat    = parseInt(stratEl ? stratEl.value : document.getElementById('strategy').value);
+    const daysRaw  = parseInt(daysEl ? daysEl.value : document.getElementById('projDays').value);
+    const startStr = document.getElementById('projStartDate').value.trim();
+
+    const trade  = Math.max(0, invest - backup);
+    const steps  = STRATEGIES[strat];
+    const days   = (!isNaN(daysRaw) && daysRaw >= 1) ? Math.min(PROJ_DAYS_MAX, daysRaw) : 0;
+    const winPct = getWinPercentage();
+
+    const setEl = (id, val) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = val;
+    };
+
+    setEl('sumInvestBalance', fmt(invest));
+    setEl('sumBackupBalanceInvest', fmt(backup));
+    ['sumInvestBalance', 'sumBackupBalanceInvest'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) flash(el);
+    });
+
+    /* Clear / empty state */
+    if (!days || days < 1 || trade <= 0) {
+      setEl('summaryDayNInvest', '—');
+      setEl('sumDaysInvest', '—');
+      setEl('sumFinalBalanceInvest', '—');
+      setEl('sumTotalTargetInvest', '—');
+      setEl('sumGrowthInvest', '—');
+      setEl('sumGrowthPctInvest', 'vs. Day 1 balance');
+      setEl('sumWinDayInvest', '—');
+      return;
+    }
+
+    const startDate = parseDate(startStr);
+
+    let dayBalance  = trade;
+    let totalTarget = 0;
+    let lastTarget  = 0;
+
+    for (let d = 0; d < days; d++) {
+      const stepVals = calcProjectionSteps(dayBalance, steps);
+      const target   = stepVals[0] * winPct;
+      totalTarget += target;
+      lastTarget   = target;
+      dayBalance   = dayBalance + target;
+    }
+    void startDate; // date isn't rendered here (no table on this tab), kept for parity
+
+    const growth    = dayBalance - trade;
+    const growthPct = trade > 0 ? ((growth / trade) * 100).toFixed(2) : '0.00';
+
+    setEl('summaryDayNInvest', days);
+    setEl('sumDaysInvest', days + (days === 1 ? ' day' : ' days'));
+    setEl('sumFinalBalanceInvest', fmt(dayBalance));
+    setEl('sumTotalTargetInvest', fmt(totalTarget));
+    setEl('sumGrowthInvest', '+' + fmt(growth));
+    setEl('sumGrowthPctInvest', '+' + growthPct + '% vs. Day 1');
+    setEl('sumWinDayInvest', fmt(lastTarget || 0));
+
+    ['sumFinalBalanceInvest','sumTotalTargetInvest','sumGrowthInvest','sumWinDayInvest'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) flash(el);
+    });
+  }
+
+  /* ══════════════════════════════════════════════════════
+     TOOLS TAB — Daily Profit Target / Target Balance /
+     Recovery Calculator (NEW, additive)
+
+     All three are logically independent of each other and
+     of the Main tab: they only ever READ #mainBalance /
+     #backupBalance / #strategy / #winPercentage / #projStartDate
+     (and only when their own "linked" checkbox is checked),
+     and never write to them except through an explicit
+     "Use in Main" button tap. They reuse calcProjectionSteps()
+     and the same Win% × Step-1 daily-target formula already
+     used by buildProjectionTable(), so results stay
+     mathematically consistent with the rest of the app.
+     ══════════════════════════════════════════════════════ */
+
+  /* Populate the three independent strategy <select> elements
+     from the existing #strategy element's options once, so the
+     step % labels can never drift out of sync with the Main
+     tab's own list. */
+  function populateToolStrategySelects() {
+    const sourceHTML = document.getElementById('strategy').innerHTML;
+    ['dptStrategy', 'tbcStrategy', 'recStrategy'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el && !el.innerHTML) el.innerHTML = sourceHTML;
+    });
+  }
+
+  const setToolText = (id, val) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = val;
+  };
+
+  function showToolError(errId, resultsId, msg) {
+    const errEl = document.getElementById(errId);
+    const resEl = document.getElementById(resultsId);
+    if (errEl) { errEl.textContent = msg; errEl.hidden = false; }
+    if (resEl) resEl.hidden = true;
+  }
+
+  function clearToolError(errId) {
+    const errEl = document.getElementById(errId);
+    if (errEl) { errEl.hidden = true; errEl.textContent = ''; }
+  }
+
+  function setToolStatus(id, msg, kind) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (!msg) { el.hidden = true; el.textContent = ''; el.className = 'tool-status'; return; }
+    el.hidden = false;
+    el.textContent = msg;
+    el.className = 'tool-status' + (kind ? ' tool-status-' + kind : '');
+  }
+
+  /* Reads Win % / Strategy / Backup Balance either from the Main
+     tab (when linked=true) or from a calculator's own independent
+     fields (when linked=false, falling back to sensible defaults
+     — the same defaults the rest of the app already uses — for
+     empty/invalid independent input). */
+  function getToolSettings(linked, winId, stratId, backupId) {
+    if (linked) {
+      return {
+        winPct: getWinPercentage(),
+        strat:  parseInt(document.getElementById('strategy').value),
+        backup: parseFloat(document.getElementById('backupBalance').value) || 0
+      };
+    }
+    const winRaw = parseFloat(document.getElementById(winId).value);
+    const winPct = (!isNaN(winRaw) && winRaw > 0) ? Math.min(100, winRaw) / 100 : WIN_PCT_DEFAULT / 100;
+    const stratRaw = parseInt(document.getElementById(stratId).value);
+    const strat = STRATEGIES[stratRaw] ? stratRaw : 6;
+    const backup = parseFloat(document.getElementById(backupId).value) || 0;
+    return { winPct, strat, backup };
+  }
+
+  /* Mirrors the current Main-tab settings into a calculator's
+     independent fields the moment linking is switched off, so the
+     user starts from the same numbers instead of blank/defaults. */
+  function seedIndependentToolFields(winId, stratId, backupId) {
+    const winEl = document.getElementById(winId);
+    const stratEl = document.getElementById(stratId);
+    const backupEl = document.getElementById(backupId);
+    if (winEl && winEl.value === '') winEl.value = document.getElementById('winPercentage').value;
+    if (stratEl && stratEl.value === '') stratEl.value = document.getElementById('strategy').value;
+    if (backupEl && backupEl.value === '') backupEl.value = document.getElementById('backupBalance').value;
+  }
+
+  function updateToolLinkUI(linkCbId, indepFieldsId, linkedValuesId, badgeId, winId, stratId, backupId, showBackup) {
+    const cb = document.getElementById(linkCbId);
+    const fields = document.getElementById(indepFieldsId);
+    const valuesEl = document.getElementById(linkedValuesId);
+    const badge = document.getElementById(badgeId);
+    if (!cb) return;
+    const linked = cb.checked;
+    if (fields) fields.hidden = linked;
+    if (badge) badge.hidden = !linked;
+    if (!linked) seedIndependentToolFields(winId, stratId, backupId);
+    if (valuesEl) {
+      if (linked) {
+        const w = getWinPercentage();
+        const s = parseInt(document.getElementById('strategy').value);
+        const b = parseFloat(document.getElementById('backupBalance').value) || 0;
+        valuesEl.textContent = `Win ${ (w*100).toFixed(2) }% · ${s}-Step Strategy` + (showBackup !== false ? ` · Backup ${fmt(b)}` : '');
+      } else {
+        valuesEl.textContent = '';
+      }
+    }
+  }
+
+  /* ── Feature: Daily Profit Target ──
+     Required Step 1 Investment = Desired Daily Profit ÷ Win %
+     Required Trade Balance     = Step 1 Investment ÷ Step 1 %
+     Required Main Balance      = Required Trade Balance + Backup Balance */
+  function calcDailyProfitTarget() {
+    updateToolLinkUI('dptLinkMain', 'dptIndependentFields', 'dptLinkedValues', 'dptLinkedBadge', 'dptWinPct', 'dptStrategy', 'dptBackup');
+    clearToolError('dptError');
+
+    const targetInput = document.getElementById('dptTarget');
+    const resultsEl = document.getElementById('dptResults');
+    const raw = targetInput.value.trim();
+
+    if (raw === '') { resultsEl.hidden = true; return; }
+
+    const target = parseFloat(raw);
+    const linked = document.getElementById('dptLinkMain').checked;
+    const { winPct, strat, backup } = getToolSettings(linked, 'dptWinPct', 'dptStrategy', 'dptBackup');
+    const steps = STRATEGIES[strat];
+
+    if (isNaN(target)) return showToolError('dptError', 'dptResults', 'Enter a valid numeric Desired Daily Profit.');
+    if (target <= 0)   return showToolError('dptError', 'dptResults', 'Desired Daily Profit must be greater than $0.');
+    if (!isFinite(target) || target > 1e14) return showToolError('dptError', 'dptResults', 'That target is too large to calculate. Try a smaller value.');
+    if (!(winPct > 0) || winPct > 1) return showToolError('dptError', 'dptResults', 'Win Percentage must be greater than 0% and no more than 100%.');
+    if (!steps) return showToolError('dptError', 'dptResults', 'Select a valid Martingale strategy.');
+
+    const step1Pct = steps[0].pct;
+    const step1Investment = target / winPct;
+    if (!isFinite(step1Investment) || !(step1Pct > 0)) return showToolError('dptError', 'dptResults', 'Unable to calculate a required balance for this input.');
+
+    const requiredTrade = step1Investment / step1Pct;
+    if (!isFinite(requiredTrade) || requiredTrade > 1e14) return showToolError('dptError', 'dptResults', 'This target requires an impractically large balance — try a smaller Desired Daily Profit or a higher Win Percentage.');
+
+    const requiredMain = requiredTrade + backup;
+    const stepVals = calcProjectionSteps(requiredTrade, steps);
+    const maxStep = Math.max(...stepVals);
+
+    setToolText('dptReqMain', fmt(requiredMain));
+    setToolText('dptReqBackup', fmt(backup));
+    setToolText('dptReqTrade', fmt(requiredTrade));
+    setToolText('dptStep1', fmt(stepVals[0]));
+    setToolText('dptMaxStep', fmt(maxStep));
+    setToolText('dptTargetDisp', fmt(target));
+    setToolText('dptStrategyDisp', strat + '-Step');
+    setToolText('dptWinDisp', (winPct * 100).toFixed(2) + '%');
+
+    let rowsHtml = '';
+    steps.forEach((s, i) => {
+      rowsHtml += `<tr><td><span class="step-badge">${i + 1}</span></td><td>${fmt(stepVals[i])}</td><td>${pct(s.pct)}</td></tr>`;
+    });
+    document.getElementById('dptStepsBody').innerHTML = rowsHtml;
+
+    dptLastRequiredMain = requiredMain;
+    dptLastRequiredBackup = backup;
+    resultsEl.hidden = false;
+  }
+  let dptLastRequiredMain = null;
+  let dptLastRequiredBackup = null;
+
+  /* ── Feature: Target Balance Calculator ──
+     Reuses the exact same per-day compounding loop as
+     buildProjectionTable() (Day N balance = Day N-1 balance +
+     Day N-1 target, target = Win% × Step-1 for that day's
+     balance) — just iterated until the balance reaches the
+     target instead of for a fixed number of days. */
+  function projectDaysToTarget(trade, targetBalance, steps, winPct) {
+    if (targetBalance <= trade) {
+      return { days: 0, reached: true, finalBalance: trade, totalProfit: 0, initialTarget: 0, finalTarget: 0, cappedAtMax: false, milestones: [{ day: 0, balance: trade, isTarget: true }] };
+    }
+    let dayBalance = trade;
+    let totalProfit = 0;
+    let initialTarget = null;
+    let finalTarget = 0;
+    let days = 0;
+    const milestones = [];
+    const milestoneDays = [1, 7, 30];
+    while (dayBalance < targetBalance && days < PROJ_DAYS_MAX) {
+      const stepVals = calcProjectionSteps(dayBalance, steps);
+      const dTarget = stepVals[0] * winPct;
+      if (initialTarget === null) initialTarget = dTarget;
+      finalTarget = dTarget;
+      dayBalance += dTarget;
+      totalProfit += dTarget;
+      days++;
+      if (milestoneDays.includes(days)) milestones.push({ day: days, balance: dayBalance });
+      if (!(dTarget > 0)) break; // balance can't grow further — avoid an infinite loop
+    }
+    const reached = dayBalance >= targetBalance;
+    // Avoid a duplicate row when the final day already landed on a
+    // milestone day (e.g. target reached exactly on Day 7).
+    if (milestones.length && milestones[milestones.length - 1].day === days) {
+      milestones[milestones.length - 1].isTarget = true;
+    } else {
+      milestones.push({ day: days, balance: dayBalance, isTarget: true });
+    }
+    return {
+      days, reached, finalBalance: dayBalance, totalProfit,
+      initialTarget: initialTarget || 0, finalTarget,
+      cappedAtMax: days >= PROJ_DAYS_MAX && !reached,
+      milestones
+    };
+  }
+
+  function calcTargetBalance() {
+    updateToolLinkUI('tbcLinkMain', 'tbcIndependentFields', 'tbcLinkedValues', 'tbcLinkedBadge', 'tbcWinPct', 'tbcStrategy', 'tbcBackup');
+    clearToolError('tbcError');
+    setToolStatus('tbcStatus', '');
+
+    const startRaw  = document.getElementById('tbcStart').value.trim();
+    const targetRaw = document.getElementById('tbcTarget').value.trim();
+    const resultsEl = document.getElementById('tbcResults');
+
+    if (startRaw === '' || targetRaw === '') { resultsEl.hidden = true; return; }
+
+    const startingBalance = parseFloat(startRaw);
+    const targetBalance   = parseFloat(targetRaw);
+    const linked = document.getElementById('tbcLinkMain').checked;
+    const { winPct, strat, backup } = getToolSettings(linked, 'tbcWinPct', 'tbcStrategy', 'tbcBackup');
+    const steps = STRATEGIES[strat];
+
+    if (isNaN(startingBalance) || startingBalance <= 0) return showToolError('tbcError', 'tbcResults', 'Enter a Starting Balance greater than $0.');
+    if (isNaN(targetBalance) || targetBalance <= 0) return showToolError('tbcError', 'tbcResults', 'Enter a Target Balance greater than $0.');
+    if (!(winPct > 0) || winPct > 1) return showToolError('tbcError', 'tbcResults', 'Win Percentage must be greater than 0% and no more than 100%.');
+    if (!steps) return showToolError('tbcError', 'tbcResults', 'Select a valid Martingale strategy.');
+    if (!isFinite(startingBalance) || !isFinite(targetBalance) || targetBalance > 1e14) return showToolError('tbcError', 'tbcResults', 'One of these values is too large to calculate.');
+
+    const trade = Math.max(0, startingBalance - backup);
+    if (trade <= 0) return showToolError('tbcError', 'tbcResults', 'Trade Balance (Starting Balance − Backup Balance) must be greater than $0.');
+
+    let startDateStr;
+    if (linked) {
+      startDateStr = document.getElementById('projStartDate').value.trim();
+    } else {
+      startDateStr = document.getElementById('tbcStartDate').value.trim();
+    }
+    const startDate = parseDate(startDateStr) || calTodayUTC();
+
+    const result = projectDaysToTarget(trade, targetBalance, steps, winPct);
+
+    setToolText('tbcStartDisp', fmt(startingBalance));
+    setToolText('tbcTargetDisp', fmt(targetBalance));
+    const reqYMD = totalDaysToYMD(result.days, startDate);
+    setToolText('tbcReqDays', formatYMD(reqYMD));
+    setToolText('tbcReqDaysSub', result.days + (result.days === 1 ? ' total day' : ' total days'));
+    setToolText('tbcTargetDate', formatDate(addDays(startDate, Math.max(0, result.days - 1))));
+    setToolText('tbcInitialTarget', fmt(result.initialTarget));
+    setToolText('tbcFinalTarget', fmt(result.finalTarget));
+    setToolText('tbcFinalBalance', fmt(result.finalBalance));
+    setToolText('tbcTotalProfit', fmt(result.totalProfit));
+    const growthPct = trade > 0 ? (((result.finalBalance - trade) / trade) * 100).toFixed(2) : '0.00';
+    setToolText('tbcGrowthPct', '+' + growthPct + '%');
+    setToolText('tbcStrategyDisp', strat + '-Step');
+    setToolText('tbcWinDisp', (winPct * 100).toFixed(2) + '%');
+
+    if (result.days === 0) {
+      setToolStatus('tbcStatus', 'Target already reached at the Starting Balance (Day 0).', 'good');
+    } else if (result.cappedAtMax) {
+      setToolStatus('tbcStatus', `Target cannot be reached within the supported calculation range (${PROJ_DAYS_MAX.toLocaleString('en-US')} days).`, 'warn');
+    } else {
+      setToolStatus('tbcStatus', `Target can be reached within the projection limit.`, 'good');
+    }
+
+    let milestoneHtml = '';
+    result.milestones.forEach(m => {
+      const label = m.isTarget ? `Target (Day ${m.day})` : `Day ${m.day}`;
+      const dateLabel = formatDate(addDays(startDate, Math.max(0, m.day - (m.day > 0 ? 1 : 0))));
+      milestoneHtml += `<tr><td>${label}</td><td>${fmt(m.balance)}</td><td>${m.day === 0 ? formatDate(startDate) : dateLabel}</td></tr>`;
+    });
+    document.getElementById('tbcMilestoneBody').innerHTML = milestoneHtml;
+
+    resultsEl.hidden = false;
+  }
+
+  /* ── Feature: Recovery Calculator ── */
+  function calcRecovery() {
+    updateToolLinkUI('recLinkMain', 'recIndependentFields', 'recLinkedValues', 'recLinkedBadge', 'recWinPct', 'recStrategy', 'recBackup');
+    clearToolError('recError');
+    setToolStatus('recStatus', '');
+
+    const lossRaw    = document.getElementById('recLoss').value.trim();
+    const currentRaw = document.getElementById('recCurrent').value.trim();
+    const resultsEl  = document.getElementById('recResults');
+
+    if (lossRaw === '' || currentRaw === '') { resultsEl.hidden = true; return; }
+
+    const lossAmount    = parseFloat(lossRaw);
+    const currentBalance = parseFloat(currentRaw);
+    const linked = document.getElementById('recLinkMain').checked;
+    const { winPct, strat, backup } = getToolSettings(linked, 'recWinPct', 'recStrategy', 'recBackup');
+    const steps = STRATEGIES[strat];
+
+    if (isNaN(lossAmount) || lossAmount <= 0) return showToolError('recError', 'recResults', 'Enter a Loss Amount greater than $0.');
+    if (isNaN(currentBalance) || currentBalance <= 0) return showToolError('recError', 'recResults', 'Enter a Current Balance greater than $0.');
+    if (!(winPct > 0) || winPct > 1) return showToolError('recError', 'recResults', 'Win Percentage must be greater than 0% and no more than 100%.');
+    if (!steps) return showToolError('recError', 'recResults', 'Select a valid Martingale strategy.');
+    if (!isFinite(lossAmount) || !isFinite(currentBalance) || lossAmount > 1e14 || currentBalance > 1e14) return showToolError('recError', 'recResults', 'One of these values is too large to calculate.');
+    if (lossAmount > currentBalance) {
+      setToolStatus('recStatus', 'Loss Amount exceeds Current Balance — recovery will require growing the balance from its current (reduced) level.', 'warn');
+    }
+
+    const recoveryPct = (lossAmount / currentBalance) * 100;
+    const recoveryTargetBalance = currentBalance + lossAmount;
+    const trade = Math.max(0, currentBalance - backup);
+
+    setToolText('recAmountLost', fmt(lossAmount));
+    setToolText('recCurrentDisp', fmt(currentBalance));
+    setToolText('recPctLoss', recoveryPct.toFixed(2) + '%');
+    setToolText('recTargetBalance', fmt(recoveryTargetBalance));
+
+    if (trade <= 0) {
+      showToolError('recError', 'recResults', 'Trade Balance (Current Balance − Backup Balance) must be greater than $0 to project a recovery.');
+      return;
+    }
+
+    const targetTrade = trade + lossAmount;
+    const result = projectDaysToTarget(trade, targetTrade, steps, winPct);
+    const startDate = calTodayUTC();
+
+    setToolText('recInitialDaily', fmt(result.initialTarget));
+    const recYMD = totalDaysToYMD(result.days, startDate);
+    setToolText('recDays', formatYMD(recYMD));
+    setToolText('recDaysSub', result.days + (result.days === 1 ? ' total day' : ' total days'));
+    setToolText('recDate', formatDate(addDays(startDate, Math.max(0, result.days - 1))));
+    setToolText('recTotalProfit', fmt(result.totalProfit));
+    setToolText('recFinalBalance', fmt(result.finalBalance + backup));
+    const growthPct = trade > 0 ? (((result.finalBalance - trade) / trade) * 100).toFixed(2) : '0.00';
+    setToolText('recGrowthPct', '+' + growthPct + '%');
+
+    if (result.cappedAtMax) {
+      setToolStatus('recStatus', `Recovery cannot be reached within the supported calculation range (${PROJ_DAYS_MAX.toLocaleString('en-US')} days).`, 'warn');
+    } else if (lossAmount <= currentBalance) {
+      setToolStatus('recStatus', '');
+    }
+
+    const dailyTargetRaw = document.getElementById('recDailyTarget').value.trim();
+    if (dailyTargetRaw !== '') {
+      const dailyTarget = parseFloat(dailyTargetRaw);
+      const fixedLabel = document.getElementById('recFixedTargetLabel');
+      const fixedSummary = document.getElementById('recFixedTargetSummary');
+      if (!isNaN(dailyTarget) && dailyTarget > 0 && isFinite(dailyTarget)) {
+        const fixedDays = Math.ceil(lossAmount / dailyTarget);
+        setToolText('recFixedDays', fixedDays + (fixedDays === 1 ? ' day' : ' days'));
+        setToolText('recFixedDate', formatDate(addDays(startDate, Math.max(0, fixedDays - 1))));
+        fixedLabel.hidden = false;
+        fixedSummary.hidden = false;
+      } else {
+        fixedLabel.hidden = true;
+        fixedSummary.hidden = true;
+      }
+    } else {
+      document.getElementById('recFixedTargetLabel').hidden = true;
+      document.getElementById('recFixedTargetSummary').hidden = true;
+    }
+
+    // Martingale risk information — always shown once inputs are valid
+    const stepVals = calcProjectionSteps(trade, steps);
+    setToolText('recStrategyDisp', strat + '-Step');
+    setToolText('recStep1', fmt(stepVals[0]));
+    setToolText('recMaxStep', fmt(Math.max(...stepVals)));
+    setToolText('recNumSteps', String(steps.length));
+
+    resultsEl.hidden = false;
+  }
+
+  /* Refreshes all three calculators together — called whenever the
+     Tools tab is opened, and whenever a Main-tab linked value
+     changes, so linked results never go stale. Cheap no-ops if a
+     calculator's required inputs are still empty. */
+  function refreshToolsCalculators() {
+    if (!document.getElementById('tabPanelTools')) return;
+    calcDailyProfitTarget();
+    calcTargetBalance();
+    calcRecovery();
+  }
+
+  /* ══════════════════════════════════════════════════════
+     NUMBER OF DAYS — editable numeric input
+     Replaces the old drum/scroll selector. The #projDays
+     input is read directly by buildProjectionTable(), so
+     the calculation engine is untouched.
+     ══════════════════════════════════════════════════════ */
+  const PROJ_DAYS_MIN = 1;
+  /* The old fixed 365-day business limit has been removed entirely —
+     any practical whole-number duration is allowed (see the Duration
+     Years/Months/Days inputs below). This constant is now purely a
+     performance safeguard against pathological input (e.g. an extra
+     stray digit turning "500" into "5000000"), so the browser is
+     never asked to render an unreasonable number of rows. Realistic
+     multi-year projections (tens of thousands of days) sit far below
+     it and are never clamped. */
+  const PROJ_DAYS_MAX = 100000;
+
+  function setDaysHint(msg, isWarn, hintId) {
+    const hint = document.getElementById(hintId || 'daysHint');
+    if (!hint) return;
+    hint.textContent = msg;
+    hint.classList.toggle('days-hint-warn', !!isWarn);
+  }
+
+  /* Validates the raw text in a "days" numeric input, clamps/
+     normalizes it when needed, and triggers a rebuild. Does not
+     fight the user while they are actively typing a partial value
+     (e.g. empty field, or "3" on the way to "30"). Generalized so
+     the same logic drives both #projDays (Main tab) and #daysInvest
+     (Summary tab, isolated) without duplicating the validation. */
+  function handleDaysInputGeneric(inputId, hintId, rebuildFn, commit) {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+    const raw = input.value;
+
+    if (raw.trim() === '') {
+      input.classList.remove('days-invalid');
+      setDaysHint('Enter any number of days (1 or more)', false, hintId);
+      rebuildFn();  // shows the empty-state row / clears the summary
+      if (commit) saveState();
+      return;
+    }
+
+    const parsed = parseFloat(raw);
+
+    if (isNaN(parsed) || !isFinite(parsed)) {
+      input.classList.add('days-invalid');
+      setDaysHint('Please enter a number', true, hintId);
+      rebuildFn();
+      if (commit) saveState();
+      return;
+    }
+
+    let normalized = Math.trunc(parsed);   // normalize decimals to an integer
+    let clamped    = false;
+
+    if (normalized < PROJ_DAYS_MIN) { normalized = PROJ_DAYS_MIN; clamped = true; }
+    if (normalized > PROJ_DAYS_MAX) { normalized = PROJ_DAYS_MAX; clamped = true; }
+
+    input.classList.remove('days-invalid');
+
+    // Only rewrite the field when committing (blur/Enter) or when the
+    // typed value was out of range — this avoids fighting the cursor
+    // mid-keystroke while the user is still typing a valid number.
+    if (commit || clamped) {
+      input.value = normalized;
+    }
+
+    setDaysHint(
+      clamped
+        ? `Capped at ${normalized.toLocaleString('en-US')} days for performance`
+        : 'Enter any number of days (1 or more)',
+      clamped,
+      hintId
+    );
+
+    rebuildFn();
+    saveState();
+  }
+
+  /* Main tab's #projDays — logic/behavior unchanged from before,
+     except it now also keeps the Years/Months/Days duration fields
+     in sync (skipped when the change originated from those fields,
+     via the mainDurationSyncing lock, to avoid an update loop). */
+  function handleDaysInput(commit) {
+    handleDaysInputGeneric('projDays', 'daysHint', buildProjectionTable, commit);
+    syncMainDurationFromDays();
+  }
+
+  /* Summary tab's #daysInvest — isolated. Only ever rebuilds the
+     Invest-driven Summary card via buildInvestSummary(); never
+     touches #projDays or the Main tab's projection table. Also keeps
+     its own Years/Months/Days duration fields in sync (skipped when
+     the change originated from those fields). */
+  function handleDaysInputInvest(commit) {
+    handleDaysInputGeneric('daysInvest', 'daysHintInvest', buildInvestSummary, commit);
+    syncInvestDurationFromDays();
+  }
+
+  /* ══════════════════════════════════════════════════════
+     DURATION (Years / Months / Days) — date-aware, two-way
+     synchronized with the Number of Days / No. of Days fields.
+     Two independent groups, mirroring the existing Main/Summary
+     isolation:
+       Main:    #projDurY / #projDurM / #projDurD   ⇄ #projDays
+       Summary: #investDurY / #investDurM / #investDurD ⇄ #daysInvest
+     A "syncing" lock per group prevents the two directions from
+     re-triggering each other in an infinite loop.
+     ══════════════════════════════════════════════════════ */
+
+  /* Reads a Years/Months/Days sub-field as a non-negative integer.
+     Empty, non-numeric, negative, or non-finite input all read as 0
+     rather than blocking the user or throwing — invalid duration
+     parts simply don't contribute to the total. */
+  function readNonNegInt(id) {
+    const el = document.getElementById(id);
+    if (!el) return 0;
+    const raw = el.value;
+    if (raw == null || String(raw).trim() === '') return 0;
+    const v = parseInt(raw, 10);
+    if (isNaN(v) || !isFinite(v) || v < 0) return 0;
+    return v;
+  }
+
+  /* Adds `years` years, then `months` months, then `days` days to
+     `base` (a UTC-midnight Date), the same order the spec describes.
+     Clamps the day-of-month when the target month is shorter than
+     the original day (e.g. 31 Jan + 1 month -> 28/29 Feb), so this
+     never silently rolls over into the following month the way naive
+     Date arithmetic would. Leap years are handled automatically since
+     the clamp is computed from the actual target month/year. */
+  function addYMD(base, years, months, days) {
+    const y0 = base.getUTCFullYear();
+    const m0 = base.getUTCMonth();
+    const d0 = base.getUTCDate();
+
+    const totalMonths = m0 + months;
+    const y = y0 + years + Math.floor(totalMonths / 12);
+    const m = ((totalMonths % 12) + 12) % 12;
+
+    const daysInTargetMonth = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+    const clampedDay = Math.min(d0, daysInTargetMonth);
+
+    return addDays(new Date(Date.UTC(y, m, clampedDay)), days);
+  }
+
+  /* Direction A: Years + Months + Days -> total elapsed days, counted
+     from `refDate` (the Start Date if one is selected, otherwise
+     today) using real calendar arithmetic — never a flat 30-day or
+     365-day-per-year assumption. */
+  function ymdToTotalDays(years, months, days, refDate) {
+    const base   = refDate || calTodayUTC();
+    const target = addYMD(base, years, months, days);
+    return Math.round((target.getTime() - base.getTime()) / 86400000);
+  }
+
+  /* Direction B: total elapsed days -> a Years/Months/Days breakdown,
+     measured from that same reference date so both directions agree
+     with each other for a given Start Date. */
+  function totalDaysToYMD(totalDays, refDate) {
+    if (!totalDays || totalDays < 1) return { years: 0, months: 0, days: 0 };
+    const base   = refDate || calTodayUTC();
+    const target = addDays(base, totalDays);
+
+    let y = target.getUTCFullYear() - base.getUTCFullYear();
+    let m = target.getUTCMonth() - base.getUTCMonth();
+    let d = target.getUTCDate() - base.getUTCDate();
+
+    if (d < 0) {
+      m -= 1;
+      const prevMonthLastDay = new Date(Date.UTC(target.getUTCFullYear(), target.getUTCMonth(), 0)).getUTCDate();
+      d += prevMonthLastDay;
+    }
+    if (m < 0) { m += 12; y -= 1; }
+
+    return { years: y, months: m, days: d };
+  }
+
+  /* Formats a {years, months, days} breakdown (from totalDaysToYMD)
+     as a complete, always-fully-spelled-out string for display —
+     e.g. "0 Years, 8 Months, 10 Days" or "3 Years, 0 Months, 0 Days".
+     Every part is always shown (never dropped/abbreviated), so the
+     Tools tab's "Required Days" / "Estimated Recovery Days" results
+     read as complete information rather than being cut down to a
+     partial, ellipsis-truncated summary. */
+  function formatYMD(ymd) {
+    return ymd.years + (ymd.years === 1 ? ' Year, ' : ' Years, ')
+         + ymd.months + (ymd.months === 1 ? ' Month, ' : ' Months, ')
+         + ymd.days + (ymd.days === 1 ? ' Day' : ' Days');
+  }
+
+  /* Shared Start Date (or today, if none is selected yet) used as the
+     reference point for both duration groups — matches how
+     buildProjectionTable()/buildInvestSummary() already share
+     #projStartDate. */
+  function currentStartDateOrToday() {
+    const startStr = document.getElementById('projStartDate').value.trim();
+    return parseDate(startStr) || calTodayUTC();
+  }
+
+  /* ── Main tab duration group ── */
+  let mainDurationSyncing = false;
+
+  function writeMainDurationFields(ymd) {
+    const yEl = document.getElementById('projDurY');
+    const mEl = document.getElementById('projDurM');
+    const dEl = document.getElementById('projDurD');
+    if (yEl) yEl.value = ymd.years;
+    if (mEl) mEl.value = ymd.months;
+    if (dEl) dEl.value = ymd.days;
+  }
+
+  /* Years/Months/Days -> #projDays (Direction A). */
+  function syncMainDaysFromDuration(commit) {
+    const y  = readNonNegInt('projDurY');
+    const mo = readNonNegInt('projDurM');
+    const d  = readNonNegInt('projDurD');
+
+    if (y === 0 && mo === 0 && d === 0) {
+      setDaysHint('Enter a duration of at least 1 day', true, 'daysHint');
+      if (commit) saveState();
+      return;
+    }
+
+    const totalDays = ymdToTotalDays(y, mo, d, currentStartDateOrToday());
+    mainDurationSyncing = true;
+    document.getElementById('projDays').value = Math.max(PROJ_DAYS_MIN, totalDays);
+    handleDaysInput(commit);
+    mainDurationSyncing = false;
+  }
+
+  /* #projDays -> Years/Months/Days (Direction B). Also called after
+     the Start Date changes, since the same day count maps to a
+     different Years/Months/Days breakdown from a different start
+     point — #projDays itself is left untouched in that case. */
+  function syncMainDurationFromDays() {
+    if (mainDurationSyncing) return;
+    const daysRaw = parseInt(document.getElementById('projDays').value, 10);
+    const ymd = (!isNaN(daysRaw) && daysRaw >= 1)
+      ? totalDaysToYMD(daysRaw, currentStartDateOrToday())
+      : { years: 0, months: 0, days: 0 };
+    writeMainDurationFields(ymd);
+  }
+
+  /* ── Summary tab duration group — isolated, mirrors the Main
+     group above but drives #daysInvest instead of #projDays. Shares
+     the same Start Date reference point (#projStartDate is shared
+     between tabs, same as buildInvestSummary() already does). ── */
+  let investDurationSyncing = false;
+
+  function writeInvestDurationFields(ymd) {
+    const yEl = document.getElementById('investDurY');
+    const mEl = document.getElementById('investDurM');
+    const dEl = document.getElementById('investDurD');
+    if (yEl) yEl.value = ymd.years;
+    if (mEl) mEl.value = ymd.months;
+    if (dEl) dEl.value = ymd.days;
+  }
+
+  function syncInvestDaysFromDuration(commit) {
+    const daysInvestEl = document.getElementById('daysInvest');
+    if (!daysInvestEl) return;
+
+    const y  = readNonNegInt('investDurY');
+    const mo = readNonNegInt('investDurM');
+    const d  = readNonNegInt('investDurD');
+
+    if (y === 0 && mo === 0 && d === 0) {
+      setDaysHint('Enter a duration of at least 1 day', true, 'daysHintInvest');
+      if (commit) saveState();
+      return;
+    }
+
+    const totalDays = ymdToTotalDays(y, mo, d, currentStartDateOrToday());
+    investDurationSyncing = true;
+    daysInvestEl.value = Math.max(PROJ_DAYS_MIN, totalDays);
+    handleDaysInputInvest(commit);
+    investDurationSyncing = false;
+  }
+
+  function syncInvestDurationFromDays() {
+    if (investDurationSyncing) return;
+    const daysInvestEl = document.getElementById('daysInvest');
+    if (!daysInvestEl) return;
+    const daysRaw = parseInt(daysInvestEl.value, 10);
+    const ymd = (!isNaN(daysRaw) && daysRaw >= 1)
+      ? totalDaysToYMD(daysRaw, currentStartDateOrToday())
+      : { years: 0, months: 0, days: 0 };
+    writeInvestDurationFields(ymd);
+  }
+
+  /* Wire the Years/Months/Days inputs — same debounce-while-typing /
+     commit-on-blur-or-Enter pattern used for #projDays / #daysInvest
+     above, kept fully independent between the two groups. */
+  ['projDurY', 'projDurM', 'projDurD'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const live = debounce(() => syncMainDaysFromDuration(false), 80);
+    el.addEventListener('input', live);
+    el.addEventListener('blur', () => syncMainDaysFromDuration(true));
+    el.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { syncMainDaysFromDuration(true); el.blur(); }
+    });
+  });
+
+  ['investDurY', 'investDurM', 'investDurD'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const live = debounce(() => syncInvestDaysFromDuration(false), 80);
+    el.addEventListener('input', live);
+    el.addEventListener('blur', () => syncInvestDaysFromDuration(true));
+    el.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { syncInvestDaysFromDuration(true); el.blur(); }
+    });
+  });
+
+  /* ── Lightweight debounce for rapid keystrokes/taps on mobile ──
+     Coalesces bursts of 'input' events (fast typing, autofill, paste)
+     into a single recalculation pass instead of rebuilding the
+     (potentially very large) projection table on every keystroke. The
+     delay is well under the ~100ms threshold where UI response still
+     feels instant, so nothing visually "waits" for a normal typing
+     cadence — it just avoids redundant work when several keystrokes
+     land in a burst. */
+  function debounce(fn, wait) {
+    let timer = null;
+    return function (...args) {
+      clearTimeout(timer);
+      timer = setTimeout(() => fn.apply(this, args), wait);
+    };
+  }
+
+  const handleDaysInputLive = debounce(() => handleDaysInput(false), 80);
+
+  (function () {
+    const input = document.getElementById('projDays');
+    input.addEventListener('input', handleDaysInputLive);
+    input.addEventListener('blur',  () => handleDaysInput(true));
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { handleDaysInput(true); input.blur(); }
+    });
+  })();
+
+  /* Summary tab's #daysInvest — isolated, mirrors the wiring above
+     but drives handleDaysInputInvest() (→ buildInvestSummary()
+     only), never #projDays or the Main tab's projection table. */
+  const handleDaysInputInvestLive = debounce(() => handleDaysInputInvest(false), 80);
+
+  (function () {
+    const input = document.getElementById('daysInvest');
+    if (!input) return;
+    input.addEventListener('input', handleDaysInputInvestLive);
+    input.addEventListener('blur',  () => handleDaysInputInvest(true));
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { handleDaysInputInvest(true); input.blur(); }
+    });
+  })();
+
+  /* ══════════════════════════════════════════════════════
+     CALENDAR DATE PICKER WIDGET
+     ══════════════════════════════════════════════════════ */
+  let calViewYear, calViewMonth, calSelectedDate = null;
+
+  function calTodayUTC() {
+    const n = new Date();
+    return new Date(Date.UTC(n.getFullYear(), n.getMonth(), n.getDate()));
+  }
+
+  function calInit() {
+    const today = calTodayUTC();
+    calViewYear  = today.getUTCFullYear();
+    calViewMonth = today.getUTCMonth();
+  }
+
+  const CAL_MONTHS = ['January','February','March','April','May','June',
+                      'July','August','September','October','November','December'];
+
+  function calRender() {
+    const today = calTodayUTC();
+    document.getElementById('calMonthLabel').textContent =
+      CAL_MONTHS[calViewMonth] + ' ' + calViewYear;
+
+    const grid = document.getElementById('calGrid');
+    grid.innerHTML = '';
+
+    // First day of this month
+    const firstDay = new Date(Date.UTC(calViewYear, calViewMonth, 1));
+    const startDow = firstDay.getUTCDay();  // 0=Sun
+
+    // Days in this month
+    const daysInMonth = new Date(Date.UTC(calViewYear, calViewMonth + 1, 0)).getUTCDate();
+
+    // Empty cells before first day
+    for (let i = 0; i < startDow; i++) {
+      const el = document.createElement('div');
+      el.className = 'cal-day cal-empty';
+      grid.appendChild(el);
+    }
+
+    for (let d = 1; d <= daysInMonth; d++) {
+      const thisDate = new Date(Date.UTC(calViewYear, calViewMonth, d));
+      const isPast   = thisDate < today;
+      const isToday  = thisDate.getTime() === today.getTime();
+      const isSel    = calSelectedDate && thisDate.getTime() === calSelectedDate.getTime();
+
+      const el = document.createElement('div');
+      el.className = 'cal-day'
+        + (isPast   ? ' cal-disabled' : '')
+        + (isToday  ? ' cal-today'    : '')
+        + (isSel    ? ' cal-selected' : '');
+      el.textContent = d;
+
+      if (!isPast) {
+        el.addEventListener('click', () => {
+          calSelectedDate = thisDate;
+          calSetHiddenValue(thisDate);
+          calRenderTrigger();
+          calClose();
+          buildProjectionTable();
+          // The Number of Days / No. of Days values themselves don't
+          // change here — but their Years/Months/Days breakdown is
+          // measured from the Start Date, so it needs recomputing
+          // against the newly selected date.
+          syncMainDurationFromDays();
+          syncInvestDurationFromDays();
+          saveState();
+        });
+      }
+      grid.appendChild(el);
+    }
+  }
+
+  function calSetHiddenValue(dt) {
+    if (!dt) { document.getElementById('projStartDate').value = ''; return; }
+    // Store as dd-mm-yyyy to match existing parseDate() logic
+    document.getElementById('projStartDate').value = formatDate(dt);
+  }
+
+  function calRenderTrigger() {
+    const disp = document.getElementById('calDisplay');
+    if (calSelectedDate) {
+      disp.textContent = formatDate(calSelectedDate);
+    } else {
+      disp.textContent = 'Select a date';
+    }
+  }
+
+  function calOpen() {
+    document.getElementById('calPanel').classList.add('open');
+    document.getElementById('calTrigger').classList.add('open');
+    calRender();
+  }
+
+  function calClose() {
+    document.getElementById('calPanel').classList.remove('open');
+    document.getElementById('calTrigger').classList.remove('open');
+  }
+
+  function calToggle() {
+    document.getElementById('calPanel').classList.contains('open') ? calClose() : calOpen();
+  }
+
+  document.getElementById('calTrigger').addEventListener('click', (e) => {
+    if (e.target.id === 'calClear' || e.target.closest('#calClear')) return;
+    calToggle();
+  });
+
+  document.getElementById('calClear').addEventListener('click', (e) => {
+    e.stopPropagation();
+    calSelectedDate = null;
+    calSetHiddenValue(null);
+    calRenderTrigger();
+    buildProjectionTable();
+    // Clearing the Start Date changes the reference point the
+    // Years/Months/Days breakdown is measured from (falls back to
+    // today) — recompute both duration groups against it.
+    syncMainDurationFromDays();
+    syncInvestDurationFromDays();
+    saveState();
+  });
+
+  document.getElementById('calPrev').addEventListener('click', () => {
+    calViewMonth--;
+    if (calViewMonth < 0) { calViewMonth = 11; calViewYear--; }
+    calRender();
+  });
+
+  document.getElementById('calNext').addEventListener('click', () => {
+    calViewMonth++;
+    if (calViewMonth > 11) { calViewMonth = 0; calViewYear++; }
+    calRender();
+  });
+
+  // Close calendar on outside click
+  document.addEventListener('click', (e) => {
+    const wrap = document.querySelector('.cal-wrapper');
+    if (wrap && !wrap.contains(e.target)) calClose();
+  });
+
+  /* ══════════════════════════════════════════════════════
+     TOOLS — TARGET BALANCE independent Start Date picker.
+     A self-contained twin of the calendar widget above, with
+     its own element IDs and its own state variables, so it
+     can never read, write, or otherwise interfere with the
+     Main tab's #projStartDate calendar. Only relevant when
+     Target Balance's "linked to Main" checkbox is switched
+     off (its own #tbcStartDate hidden input then holds the
+     selected date, exactly like #projStartDate does for Main).
+     ══════════════════════════════════════════════════════ */
+  if (document.getElementById('tbcCalTrigger')) {
+    let tbcCalViewYear, tbcCalViewMonth, tbcCalSelectedDate = null;
+    const tbcToday = calTodayUTC();
+    tbcCalViewYear  = tbcToday.getUTCFullYear();
+    tbcCalViewMonth = tbcToday.getUTCMonth();
+
+    function tbcCalRender() {
+      const today = calTodayUTC();
+      document.getElementById('tbcCalMonthLabel').textContent =
+        CAL_MONTHS[tbcCalViewMonth] + ' ' + tbcCalViewYear;
+
+      const grid = document.getElementById('tbcCalGrid');
+      grid.innerHTML = '';
+
+      const firstDay  = new Date(Date.UTC(tbcCalViewYear, tbcCalViewMonth, 1));
+      const startDow  = firstDay.getUTCDay();
+      const daysInMonth = new Date(Date.UTC(tbcCalViewYear, tbcCalViewMonth + 1, 0)).getUTCDate();
+
+      for (let i = 0; i < startDow; i++) {
+        const el = document.createElement('div');
+        el.className = 'cal-day cal-empty';
+        grid.appendChild(el);
+      }
+
+      for (let d = 1; d <= daysInMonth; d++) {
+        const thisDate = new Date(Date.UTC(tbcCalViewYear, tbcCalViewMonth, d));
+        const isToday = thisDate.getTime() === today.getTime();
+        const isSel   = tbcCalSelectedDate && thisDate.getTime() === tbcCalSelectedDate.getTime();
+
+        // Unlike the Main Start Date (used to schedule a projection
+        // starting today or later), this date is only a reference
+        // point for estimating a target date, so — unlike the Main
+        // calendar — past dates stay selectable here.
+        const el = document.createElement('div');
+        el.className = 'cal-day'
+          + (isToday ? ' cal-today'    : '')
+          + (isSel   ? ' cal-selected' : '');
+        el.textContent = d;
+
+        el.addEventListener('click', () => {
+          tbcCalSelectedDate = thisDate;
+          tbcCalSetHiddenValue(thisDate);
+          tbcCalRenderTrigger();
+          tbcCalClose();
+          calcTargetBalance();
+          saveState();
+        });
+        grid.appendChild(el);
+      }
+    }
+
+    function tbcCalSetHiddenValue(dt) {
+      const hidden = document.getElementById('tbcStartDate');
+      if (!dt) { hidden.value = ''; return; }
+      hidden.value = formatDate(dt); // dd-mm-yyyy, matching parseDate()
+    }
+
+    function tbcCalRenderTrigger() {
+      const disp = document.getElementById('tbcCalDisplay');
+      disp.textContent = tbcCalSelectedDate ? formatDate(tbcCalSelectedDate) : 'Select a date';
+    }
+
+    function tbcCalOpen() {
+      document.getElementById('tbcCalPanel').classList.add('open');
+      document.getElementById('tbcCalTrigger').classList.add('open');
+      tbcCalRender();
+    }
+
+    function tbcCalClose() {
+      document.getElementById('tbcCalPanel').classList.remove('open');
+      document.getElementById('tbcCalTrigger').classList.remove('open');
+    }
+
+    function tbcCalToggle() {
+      document.getElementById('tbcCalPanel').classList.contains('open') ? tbcCalClose() : tbcCalOpen();
+    }
+
+    document.getElementById('tbcCalTrigger').addEventListener('click', (e) => {
+      if (e.target.id === 'tbcCalClear' || e.target.closest('#tbcCalClear')) return;
+      tbcCalToggle();
+    });
+
+    document.getElementById('tbcCalClear').addEventListener('click', (e) => {
+      e.stopPropagation();
+      tbcCalSelectedDate = null;
+      tbcCalSetHiddenValue(null);
+      tbcCalRenderTrigger();
+      calcTargetBalance();
+      saveState();
+    });
+
+    document.getElementById('tbcCalPrev').addEventListener('click', () => {
+      tbcCalViewMonth--;
+      if (tbcCalViewMonth < 0) { tbcCalViewMonth = 11; tbcCalViewYear--; }
+      tbcCalRender();
+    });
+
+    document.getElementById('tbcCalNext').addEventListener('click', () => {
+      tbcCalViewMonth++;
+      if (tbcCalViewMonth > 11) { tbcCalViewMonth = 0; tbcCalViewYear++; }
+      tbcCalRender();
+    });
+
+    // Close THIS calendar on outside click — scoped to its own
+    // wrapper (.tbc-cal-wrapper) only, so this listener can never
+    // affect, or be affected by, the Main tab's calendar/listener above.
+    document.addEventListener('click', (e) => {
+      const wrap = document.querySelector('.tbc-cal-wrapper');
+      if (wrap && !wrap.contains(e.target)) tbcCalClose();
+    });
+
+    // Restore hook used by loadState() so a page refresh re-selects
+    // the saved date visually (trigger label + month view), not just
+    // the underlying hidden value.
+    window.__tbcCalRestore = function (dateStr) {
+      const dt = parseDate(dateStr);
+      if (dt) {
+        tbcCalSelectedDate = dt;
+        tbcCalViewYear = dt.getUTCFullYear();
+        tbcCalViewMonth = dt.getUTCMonth();
+      } else {
+        tbcCalSelectedDate = null;
+      }
+      tbcCalRenderTrigger();
+    };
+  }
+
+  /* ── Restore Number of Days input + calendar from saved state ── */
+  function restoreDrumAndCal(state) {
+    // Number of Days (loadState() already wrote the raw value into
+    // #projDays; here we just re-run validation so the hint/clamp
+    // state and the input's displayed value are consistent).
+    if (state && state.projDays != null) {
+      document.getElementById('projDays').value = state.projDays;
+    }
+    handleDaysInput(true);
+
+    // Summary tab's isolated "No. of Days" (#daysInvest) — same
+    // re-validation pattern, entirely separate from #projDays above.
+    const daysInvestInput = document.getElementById('daysInvest');
+    if (daysInvestInput) {
+      if (state && state.daysInvest != null) {
+        daysInvestInput.value = state.daysInvest;
+      }
+      handleDaysInputInvest(true);
+    }
+
+    // Calendar date
+    if (state && state.projStart) {
+      const dt = parseDate(state.projStart);
+      if (dt && dt >= calTodayUTC()) {
+        calSelectedDate = dt;
+      }
+    } else if (!state) {
+      // First-time user / no saved application state at all —
+      // default Start Date to today's local date.
+      calSelectedDate = calTodayUTC();
+    }
+    calSetHiddenValue(calSelectedDate);
+    calRenderTrigger();
+
+    /* Derive the Years/Months/Days duration fields from the restored
+       Number of Days + Start Date — this is what makes old saved
+       states (which have no duration fields at all) work correctly:
+       there's nothing to "migrate", the breakdown is just computed
+       fresh every time from the values that were always saved. */
+    syncMainDurationFromDays();
+    syncInvestDurationFromDays();
+  }
+
+  /* ── Event wiring ──
+     Main/Backup Balance and Win Percentage are free-typing numeric
+     fields — debounce their recalculation so fast mobile typing
+     doesn't trigger a full table rebuild on every keystroke. Strategy
+     is a discrete select change (not rapid keystrokes), so it stays
+     on immediate calculate. */
+  const calculateLive = debounce(calculate, 80);
+  ['mainBalance', 'backupBalance', 'winPercentage'].forEach(id =>
+    document.getElementById(id).addEventListener('input', calculateLive)
+  );
+  document.getElementById('strategy').addEventListener('input', calculate);
+
+  /* Summary tab's "Invest" field and "Martingale Steps" select —
+     isolated. They only ever trigger buildInvestSummary() (never
+     calculate()/buildProjectionTable()'s Main-tab path), so using
+     them can't touch #mainBalance, #strategy, or any Main tab
+     display. */
+  const investEl = document.getElementById('investBalance');
+  if (investEl) {
+    const buildInvestSummaryLive = debounce(() => { buildInvestSummary(); saveState(); }, 80);
+    investEl.addEventListener('input', buildInvestSummaryLive);
+  }
+  const strategyInvestEl = document.getElementById('strategyInvest');
+  if (strategyInvestEl) {
+    strategyInvestEl.addEventListener('input', () => { buildInvestSummary(); saveState(); });
+  }
+
+  /* ══════════════════════════════════════════════════════
+     TOOLS TAB — event wiring (isolated per calculator; each
+     one only ever reads Main-tab fields, never writes to them
+     except via the explicit "Use in Main" button below).
+     ══════════════════════════════════════════════════════ */
+  populateToolStrategySelects();
+
+  const calcDailyProfitTargetLive = debounce(() => { calcDailyProfitTarget(); saveState(); }, 80);
+  ['dptTarget', 'dptWinPct', 'dptBackup'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', calcDailyProfitTargetLive);
+  });
+  ['dptLinkMain', 'dptStrategy'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', () => { calcDailyProfitTarget(); saveState(); });
+  });
+  const dptUseMainBtn = document.getElementById('dptUseMain');
+  if (dptUseMainBtn) {
+    dptUseMainBtn.addEventListener('click', () => {
+      if (dptLastRequiredMain == null) return;
+      document.getElementById('mainBalance').value = dptLastRequiredMain.toFixed(2);
+      if (dptLastRequiredBackup != null) document.getElementById('backupBalance').value = dptLastRequiredBackup.toFixed(2);
+      calculate();
+      const tabBtnMain = document.getElementById('tabBtnMain');
+      if (tabBtnMain) tabBtnMain.click();
+      goToMainBalance();
+    });
+  }
+
+  const calcTargetBalanceLive = debounce(() => { calcTargetBalance(); saveState(); }, 80);
+  ['tbcStart', 'tbcTarget', 'tbcWinPct', 'tbcBackup', 'tbcStartDate'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', calcTargetBalanceLive);
+  });
+  ['tbcLinkMain', 'tbcStrategy'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', () => { calcTargetBalance(); saveState(); });
+  });
+
+  const calcRecoveryLive = debounce(() => { calcRecovery(); saveState(); }, 80);
+  ['recLoss', 'recCurrent', 'recDailyTarget', 'recWinPct', 'recBackup'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', calcRecoveryLive);
+  });
+  ['recLinkMain', 'recStrategy'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', () => { calcRecovery(); saveState(); });
+  });
+
+  /* ══════════════════════════════════════════════════════
+     TABS — Main / Summary / Tools switcher
+     Extended (additively) from the original two-tab Main/
+     Summary switcher to also support the new Tools tab,
+     without changing how Main ⇄ Summary behave.
+     ══════════════════════════════════════════════════════ */
+  (function initTabs() {
+    const tabBtnMain    = document.getElementById('tabBtnMain');
+    const tabBtnSummary = document.getElementById('tabBtnSummary');
+    const tabBtnTools   = document.getElementById('tabBtnTools');
+    const panelMain      = document.getElementById('tabPanelMain');
+    const panelSummary   = document.getElementById('tabPanelSummary');
+    const panelTools     = document.getElementById('tabPanelTools');
+    if (!tabBtnMain || !tabBtnSummary || !panelMain || !panelSummary) return;
+
+    const tabs = [
+      { btn: tabBtnMain,    panel: panelMain,    name: 'main' },
+      { btn: tabBtnSummary, panel: panelSummary, name: 'summary' },
+      { btn: tabBtnTools,   panel: panelTools,   name: 'tools' }
+    ].filter(t => t.btn && t.panel);
+
+    function activateTab(name) {
+      tabs.forEach(t => {
+        const show = t.name === name;
+        t.btn.classList.toggle('active', show);
+        t.btn.setAttribute('aria-selected', String(show));
+        t.panel.classList.toggle('active', show);
+        t.panel.hidden = !show;
+      });
+      if (name === 'summary') buildInvestSummary(); // ensure fresh values when opened
+      if (name === 'tools') refreshToolsCalculators(); // ensure fresh values when opened
+    }
+
+    tabBtnMain.addEventListener('click', () => activateTab('main'));
+    tabBtnSummary.addEventListener('click', () => activateTab('summary'));
+    if (tabBtnTools) tabBtnTools.addEventListener('click', () => activateTab('tools'));
+  })();
+
+  /* ══════════════════════════════════════════════════════
+     THEME SWITCHER
+     ══════════════════════════════════════════════════════ */
+  function applyTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    const sel = document.getElementById('themeSelect');
+    if (sel) sel.value = theme;
+  }
+
+  document.getElementById('themeSelect').addEventListener('change', function () {
+    applyTheme(this.value);
+    saveState();
+  });
+
+  /* ══════════════════════════════════════════════════════
+     FONT SIZE CONTROLLER
+     Range: 12px – 22px, step 1px, default 16px
+     Applied to html element so all rem units scale
+     ══════════════════════════════════════════════════════ */
+  const FONT_MIN     = 12;
+  const FONT_MAX     = 22;
+  const FONT_DEFAULT = 16;
+  let currentFontSize = FONT_DEFAULT;
+
+  function applyFontSize(size) {
+    currentFontSize = Math.min(FONT_MAX, Math.max(FONT_MIN, size));
+    document.documentElement.style.fontSize = currentFontSize + 'px';
+    const badge = document.getElementById('fontSizeBadge');
+    if (badge) badge.textContent = currentFontSize + 'px';
+  }
+
+  document.getElementById('fontIncrease').addEventListener('click', () => {
+    applyFontSize(currentFontSize + 1);
+    saveState();
+  });
+
+  document.getElementById('fontDecrease').addEventListener('click', () => {
+    applyFontSize(currentFontSize - 1);
+    saveState();
+  });
+
+  document.getElementById('fontReset').addEventListener('click', () => {
+    applyFontSize(FONT_DEFAULT);
+    saveState();
+  });
+
+  /* ══════════════════════════════════════════════════════
+     NAVIGATION BUTTONS
+     Summary Up Arrow    → Main Balance input
+     Summary Down Arrow  → last dynamic projection record
+     Bottom Up Arrow      → Main Balance input (persistent,
+       lives outside #projBody so table rebuilds never
+       duplicate it or lose its listener)
+     ══════════════════════════════════════════════════════ */
+  const prefersReducedMotion = () =>
+    window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const scrollBehavior = () => (prefersReducedMotion() ? 'auto' : 'smooth');
+
+  function goToMainBalance() {
+    const el = document.getElementById('mainBalance');
+    if (!el) return;
+    el.scrollIntoView({ behavior: scrollBehavior(), block: 'center' });
+    // Focus after the scroll starts; value is left untouched.
+    el.focus({ preventScroll: true });
+  }
+
+  function goToLastProjectionRow() {
+    const rows = document.querySelectorAll('#projBody tr');
+    if (!rows.length) return;
+    const lastRow = rows[rows.length - 1];
+    lastRow.scrollIntoView({ behavior: scrollBehavior(), block: 'center' });
+    lastRow.classList.remove('proj-row-highlight');
+    void lastRow.offsetWidth; // restart animation if clicked repeatedly
+    lastRow.classList.add('proj-row-highlight');
+  }
+
+  document.getElementById('summaryUpBtn').addEventListener('click', goToMainBalance);
+  document.getElementById('summaryDownBtn').addEventListener('click', goToLastProjectionRow);
+  document.getElementById('bottomUpBtn').addEventListener('click', goToMainBalance);
+
+  /* ── Boot ── */
+  calInit();
+  (() => {
+    // Load raw state first so we can restore Number of Days + cal before calculate()
+    let savedState = null;
+    try { savedState = JSON.parse(localStorage.getItem(STORAGE_KEY)); } catch(e) {}
+    loadState();                          // restores inputs + theme + fontSize
+    restoreDrumAndCal(savedState);        // restores Number of Days + calendar selection
+    calculate();                          // also calls buildProjectionTable()
+
+    /* Automatically navigate to the Summary card on initial startup
+       only. Runs once, after state/theme/fonts/calculations are all
+       settled, so it doesn't fight the user's own scrolling afterward. */
+    setTimeout(() => {
+      const summaryEl = document.getElementById('summaryCard');
+      if (summaryEl) {
+        summaryEl.scrollIntoView({ behavior: scrollBehavior(), block: 'start' });
+        summaryEl.focus({ preventScroll: true });
+      }
+    }, 150);
+  })();
+</script>
+</body>
+</html>
