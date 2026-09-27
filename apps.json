@@ -1,0 +1,104 @@
+{
+  "applications": [
+    {
+      "id": "unit-test-result-sheet-maker-v1-0",
+      "name": "Unit Test Result Sheet Maker v1.0",
+      "description": "A static web application for Unit Test Result Sheet Maker v1.0.",
+      "version": "1.0",
+      "category": "Education",
+      "path": "apps/unit-test-result-sheet-maker-v1-0/",
+      "icon": "📊",
+      "iconType": "emoji"
+    },
+    {
+      "id": "stackroom-school-library-system",
+      "name": "Stackroom — School Library System",
+      "description": "Stackroom — School Library System.",
+      "version": "1.0",
+      "category": "Education",
+      "path": "apps/stackroom-school-library-system/",
+      "icon": "📚",
+      "iconType": "emoji"
+    },
+    {
+      "id": "question-generator-v8",
+      "name": "Question Generator v8",
+      "description": "Question Generator v8.",
+      "version": "1.0",
+      "category": "Education",
+      "path": "apps/question-generator-v8/",
+      "icon": "📝",
+      "iconType": "emoji"
+    },
+    {
+      "id": "sp125-care",
+      "name": "SP125 Care",
+      "description": "Honda SP125 Motorcycle Maintenance & Service Manager",
+      "version": "1.0",
+      "category": "",
+      "path": "apps/sp125-care/",
+      "icon": "🧩",
+      "iconType": "emoji"
+    },
+    {
+      "id": "khata-daily-expense-manager",
+      "name": "Khata — Daily Expense Manager",
+      "description": "Khata — Daily Expense Manager, packaged as an independent static app.",
+      "version": "1.0",
+      "category": "Finance",
+      "path": "apps/khata-daily-expense-manager/",
+      "icon": "💰",
+      "iconType": "emoji"
+    },
+    {
+      "id": "martingale-risk-strategy-calculator",
+      "name": "Martingale Risk Strategy Calculator",
+      "description": "Martingale Risk Strategy Calculator",
+      "version": "1.0",
+      "category": "Utility",
+      "path": "apps/martingale-risk-strategy-calculator/",
+      "icon": "💰",
+      "iconType": "emoji"
+    },
+    {
+      "id": "crate-static-web-app-launcher-builder",
+      "name": "Crate — Static Web App Launcher Builder",
+      "description": "App Launcher Builder",
+      "version": "1.0",
+      "category": "Utility",
+      "path": "apps/crate-static-web-app-launcher-builder/",
+      "icon": "🚀",
+      "iconType": "emoji"
+    },
+    {
+      "id": "image-to-svg-converter",
+      "name": "Image to SVG Converter",
+      "description": "Convert images to vector SVG, customize background color, and resize by dragging or manual inputs",
+      "version": "1.0",
+      "category": "Utility",
+      "path": "apps/image-to-svg-converter/",
+      "icon": "🖼️",
+      "iconType": "emoji"
+    },
+    {
+      "id": "json-student-data-to-excel",
+      "name": "JSON Student Data to Excel",
+      "description": "Upload your JSON file to filter Roll No and Student Name into an Excel spreadsheet.",
+      "version": "1.0",
+      "category": "Utility",
+      "path": "apps/json-student-data-to-excel/",
+      "icon": "📄",
+      "iconType": "emoji"
+    },
+    {
+      "id": "universal-github-gist-sync-module",
+      "name": "Universal GitHub Gist Sync Module",
+      "description": "Open Universal GitHub Gist Sync Module to get started right away.",
+      "version": "1.0",
+      "category": "Utility",
+      "path": "apps/universal-github-gist-sync-module/",
+      "icon": "🖥️",
+      "iconType": "emoji"
+    }
+  ]
+}
