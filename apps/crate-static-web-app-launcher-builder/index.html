@@ -1,0 +1,2586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Crate — Static Web App Launcher Builder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+:root{
+  --paper:#F6F3EC;
+  --paper-2:#EFEADD;
+  --ink:#20232B;
+  --ink-soft:#5B5849;
+  --line:#D8D2C0;
+  --line-strong:#B9B29A;
+  --accent:#2F6F4E;
+  --accent-soft:#DCEADE;
+  --stamp:#B23A24;
+  --stamp-soft:#F4DED7;
+  --white:#FFFDF8;
+  --radius:2px;
+  --mono:'IBM Plex Mono',monospace;
+  --head:'Space Grotesk',sans-serif;
+  --body:'Inter',sans-serif;
+  --shadow:0 1px 0 rgba(32,35,43,.06);
+  color-scheme: light;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:var(--body);
+  background:var(--paper);
+  color:var(--ink);
+  min-height:100vh;
+  -webkit-font-smoothing:antialiased;
+}
+button{font-family:inherit;}
+::selection{background:var(--accent-soft);}
+a{color:var(--accent);}
+
+/* ---------- Skip link / focus ---------- */
+.skip-link{position:absolute;left:-999px;top:0;background:var(--ink);color:#fff;padding:8px 14px;z-index:999;}
+.skip-link:focus{left:8px;top:8px;}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+
+/* ---------- Shell ---------- */
+.shell{display:flex;min-height:100vh;}
+.rail{
+  width:230px;flex:0 0 230px;background:var(--white);
+  border-right:1px solid var(--line);
+  padding:22px 0 22px;
+  position:sticky;top:0;height:100vh;overflow-y:auto;
+}
+.brand{padding:0 20px 18px;border-bottom:1px dashed var(--line-strong);margin-bottom:14px;}
+.brand-mark{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:34px;height:34px;border:1.5px solid var(--ink);border-radius:var(--radius);
+  font-family:var(--mono);font-weight:600;font-size:13px;margin-bottom:8px;
+  transform:rotate(-2deg);
+}
+.brand h1{font-family:var(--head);font-size:19px;margin:0 0 2px;letter-spacing:-.02em;}
+.brand p{margin:0;font-size:12px;color:var(--ink-soft);font-family:var(--mono);}
+
+.tabs{list-style:none;margin:0;padding:0;}
+.tabs button{
+  width:100%;text-align:left;background:none;border:none;
+  padding:11px 20px;font-size:13.5px;color:var(--ink-soft);cursor:pointer;
+  display:flex;align-items:center;gap:10px;border-left:3px solid transparent;
+  transition:background .15s ease,color .15s ease,border-color .15s ease;
+}
+.tabs button .num{font-family:var(--mono);font-size:11px;color:var(--line-strong);width:16px;}
+.tabs button:hover{background:var(--paper-2);color:var(--ink);}
+.tabs button[aria-selected="true"]{color:var(--ink);border-left-color:var(--accent);background:var(--paper-2);font-weight:600;}
+.tabs button[aria-selected="true"] .num{color:var(--accent);}
+
+.rail-foot{padding:16px 20px 0;margin-top:16px;}
+.rail-foot button{width:100%;}
+
+/* ---------- Main ---------- */
+.main{flex:1;min-width:0;padding:28px 36px 80px;max-width:1180px;}
+.panel{display:none;}
+.panel.active{display:block;animation:fadeUp .35s ease both;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+
+.page-head{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;margin-bottom:22px;flex-wrap:wrap;}
+.page-head h2{font-family:var(--head);font-size:26px;margin:0 0 4px;letter-spacing:-.01em;}
+.page-head p{margin:0;color:var(--ink-soft);font-size:14px;max-width:56ch;}
+.eyebrow{font-family:var(--mono);font-size:11px;color:var(--stamp);margin:0 0 6px;}
+
+/* ---------- Buttons ---------- */
+.btn{
+  display:inline-flex;align-items:center;gap:8px;
+  border:1.5px solid var(--ink);background:var(--white);color:var(--ink);
+  padding:9px 16px;font-size:13.5px;font-weight:600;border-radius:var(--radius);
+  cursor:pointer;transition:transform .12s ease, box-shadow .12s ease, background .12s ease;
+  font-family:var(--body);
+}
+.btn:hover{background:var(--paper-2);}
+.btn:active{transform:translateY(1px);}
+.btn-primary{background:var(--accent);border-color:var(--accent);color:#fff;}
+.btn-primary:hover{background:#28613f;}
+.btn-stamp{background:var(--stamp);border-color:var(--stamp);color:#fff;}
+.btn-stamp:hover{background:#96301d;}
+.btn-ghost{border-color:transparent;background:none;}
+.btn-ghost:hover{background:var(--paper-2);}
+.btn-sm{padding:6px 11px;font-size:12.5px;}
+.btn[disabled]{opacity:.45;cursor:not-allowed;}
+.btn-danger{border-color:var(--stamp);color:var(--stamp);background:#fff;}
+.btn-danger:hover{background:var(--stamp-soft);}
+
+/* ---------- Cards / manifest tickets ---------- */
+.ticket{
+  background:var(--white);border:1px solid var(--line);border-radius:var(--radius);
+  box-shadow:var(--shadow);
+}
+.dropzone{
+  border:2px dashed var(--line-strong);border-radius:var(--radius);
+  padding:34px 20px;text-align:center;background:var(--white);
+  transition:border-color .15s ease, background .15s ease;
+}
+.dropzone.drag{border-color:var(--accent);background:var(--accent-soft);}
+.dropzone p{margin:6px 0;color:var(--ink-soft);font-size:13px;}
+.dropzone .dz-icon{font-size:28px;}
+.dz-actions{display:flex;gap:10px;justify-content:center;margin-top:14px;flex-wrap:wrap;}
+
+.empty-state{
+  text-align:center;padding:60px 20px;border:1px dashed var(--line-strong);
+  border-radius:var(--radius);background:var(--white);
+  animation:fadeUp .5s ease both;
+}
+.empty-state .glyph{font-size:34px;margin-bottom:10px;display:block;}
+.empty-state h3{font-family:var(--head);margin:0 0 6px;font-size:19px;}
+.empty-state p{color:var(--ink-soft);font-size:13.5px;max-width:44ch;margin:0 auto 18px;}
+
+/* app cards */
+#appList{display:flex;flex-direction:column;gap:10px;margin-top:18px;}
+.app-card{
+  display:flex;gap:14px;align-items:flex-start;padding:14px 16px;
+  background:var(--white);border:1px solid var(--line);border-radius:var(--radius);
+  animation:fadeUp .3s ease both;transition:box-shadow .15s ease, border-color .15s ease, transform .15s ease;
+}
+.app-card:hover{border-color:var(--line-strong);box-shadow:0 2px 10px rgba(32,35,43,.06);}
+.app-card.dragging{opacity:.4;}
+.app-card.drop-target{border-color:var(--accent);}
+.drag-handle{cursor:grab;color:var(--line-strong);font-size:16px;padding-top:2px;user-select:none;touch-action:none;}
+.reorder-btns{display:flex;flex-direction:column;gap:2px;}
+.reorder-btns button{border:1px solid var(--line);background:#fff;width:22px;height:20px;font-size:10px;cursor:pointer;border-radius:2px;line-height:1;}
+.app-icon{
+  width:46px;height:46px;border:1px solid var(--line);border-radius:var(--radius);
+  display:flex;align-items:center;justify-content:center;font-size:22px;flex:0 0 46px;
+  background:var(--paper-2);overflow:hidden;transition:transform .15s ease;
+}
+.app-icon img{width:100%;height:100%;object-fit:cover;}
+.app-card:hover .app-icon{transform:scale(1.05) rotate(-1deg);}
+.app-body{flex:1;min-width:0;}
+.app-title-row{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;}
+.app-title-row h4{margin:0;font-family:var(--head);font-size:15.5px;}
+.app-id{font-family:var(--mono);font-size:11px;color:var(--ink-soft);background:var(--paper-2);padding:1px 6px;border-radius:2px;}
+.app-desc{font-size:13px;color:var(--ink-soft);margin:4px 0 8px;max-width:70ch;}
+.app-meta{display:flex;gap:14px;flex-wrap:wrap;font-size:11.5px;color:var(--ink-soft);font-family:var(--mono);}
+.app-actions{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;}
+.badge{display:inline-block;font-size:10.5px;font-family:var(--mono);border:1px solid var(--line-strong);border-radius:2px;padding:1px 6px;color:var(--ink-soft);}
+
+/* ---------- Forms ---------- */
+.field{margin-bottom:16px;}
+.field label{display:block;font-size:12.5px;font-weight:600;margin-bottom:5px;}
+.field .hint{font-size:11.5px;color:var(--ink-soft);margin-top:4px;}
+.field input[type=text],.field input[type=number],.field textarea,.field select{
+  width:100%;padding:9px 10px;border:1px solid var(--line-strong);border-radius:var(--radius);
+  font-family:var(--body);font-size:13.5px;background:#fff;color:var(--ink);
+}
+.field textarea{resize:vertical;min-height:64px;}
+.field input:focus,.field textarea:focus,.field select:focus{border-color:var(--accent);}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:0 16px;}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0 16px;}
+@media(max-width:640px){.grid-2,.grid-3{grid-template-columns:1fr;}}
+.radio-row{display:flex;gap:14px;flex-wrap:wrap;}
+.radio-row label{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:500;}
+.section-title{font-family:var(--head);font-size:15px;margin:26px 0 12px;padding-bottom:8px;border-bottom:1px dashed var(--line-strong);}
+.section-title:first-child{margin-top:0;}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--paper-2);}
+.toggle-row:last-child{border-bottom:none;}
+.toggle-row span{font-size:13px;}
+.switch{position:relative;width:38px;height:21px;flex:0 0 38px;}
+.switch input{opacity:0;width:0;height:0;}
+.switch .track{position:absolute;inset:0;background:var(--line-strong);border-radius:20px;transition:.15s;cursor:pointer;}
+.switch .track:before{content:"";position:absolute;width:15px;height:15px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.15s;}
+.switch input:checked + .track{background:var(--accent);}
+.switch input:checked + .track:before{transform:translateX(17px);}
+
+details.adv{border:1px solid var(--line);border-radius:var(--radius);margin-top:18px;background:var(--white);}
+details.adv summary{padding:11px 14px;cursor:pointer;font-weight:600;font-size:13px;list-style:none;display:flex;align-items:center;gap:8px;}
+details.adv summary::-webkit-details-marker{display:none;}
+details.adv summary:before{content:"▸";transition:transform .15s;}
+details.adv[open] summary:before{transform:rotate(90deg);}
+details.adv .adv-body{padding:4px 14px 16px;}
+
+/* ---------- Modal ---------- */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(32,35,43,.5);display:none;
+  align-items:flex-start;justify-content:center;z-index:200;padding:40px 16px;overflow-y:auto;
+  animation:overlayIn .18s ease both;
+}
+.modal-overlay.open{display:flex;}
+@keyframes overlayIn{from{opacity:0;}to{opacity:1;}}
+.modal{
+  background:#fff;border-radius:var(--radius);max-width:640px;width:100%;
+  border:1px solid var(--line);box-shadow:0 12px 40px rgba(32,35,43,.25);
+  animation:modalIn .22s cubic-bezier(.2,.8,.2,1) both;
+}
+@keyframes modalIn{from{opacity:0;transform:translateY(10px) scale(.98);}to{opacity:1;transform:none;}}
+.modal-head{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--line);}
+.modal-head h3{margin:0;font-family:var(--head);font-size:17px;}
+.modal-body{padding:20px;max-height:70vh;overflow-y:auto;}
+.modal-foot{padding:14px 20px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:10px;}
+.close-x{background:none;border:none;font-size:18px;cursor:pointer;color:var(--ink-soft);padding:4px 8px;}
+.icon-choice{display:flex;gap:10px;flex-wrap:wrap;}
+.icon-opt{
+  border:1.5px solid var(--line-strong);border-radius:var(--radius);padding:10px;text-align:center;
+  cursor:pointer;width:84px;transition:border-color .12s;
+}
+.icon-opt.selected{border-color:var(--accent);background:var(--accent-soft);}
+.icon-opt .preview{font-size:22px;height:30px;display:flex;align-items:center;justify-content:center;}
+.icon-opt .preview img{max-width:100%;max-height:100%;}
+.icon-opt small{display:block;font-size:10px;color:var(--ink-soft);margin-top:4px;}
+
+/* ---------- Preview ---------- */
+.preview-frame-wrap{border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;background:#fff;box-shadow:var(--shadow);}
+.preview-toolbar{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid var(--line);background:var(--paper-2);}
+.preview-toolbar .dots{display:flex;gap:5px;}
+.preview-toolbar .dots span{width:8px;height:8px;border-radius:50%;background:var(--line-strong);}
+#launcherFrame{width:100%;height:640px;border:none;display:block;background:#fff;}
+
+/* ---------- Build ---------- */
+.build-log{
+  font-family:var(--mono);font-size:12.5px;background:var(--ink);color:#ECE7D8;
+  padding:16px;border-radius:var(--radius);min-height:160px;max-height:320px;overflow-y:auto;
+  line-height:1.7;
+}
+.build-log .ok{color:#8ED4A8;}
+.build-log .step{opacity:.85;}
+.build-log .err{color:#F0A08C;}
+progress{width:100%;height:8px;appearance:none;border:none;border-radius:6px;overflow:hidden;margin:12px 0;}
+progress::-webkit-progress-bar{background:var(--paper-2);}
+progress::-webkit-progress-value{background:var(--accent);transition:width .2s ease;}
+.errlist{background:var(--stamp-soft);border:1px solid var(--stamp);border-radius:var(--radius);padding:14px 16px;margin-bottom:16px;}
+.errlist h4{margin:0 0 8px;font-size:13px;color:var(--stamp);}
+.errlist ul{margin:0;padding-left:18px;font-size:13px;}
+.report{display:none;margin-top:18px;}
+.report.show{display:block;animation:fadeUp .3s ease both;}
+.report-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin:14px 0;}
+.report-grid .stat{border:1px solid var(--line);border-radius:var(--radius);padding:10px 12px;background:#fff;}
+.report-grid .stat b{display:block;font-family:var(--head);font-size:20px;}
+.report-grid .stat span{font-size:11px;color:var(--ink-soft);}
+.tree{font-family:var(--mono);font-size:12.5px;background:var(--white);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;white-space:pre;overflow-x:auto;}
+
+.toast-wrap{position:fixed;bottom:20px;right:20px;z-index:400;display:flex;flex-direction:column;gap:8px;}
+.toast{background:var(--ink);color:#fff;padding:10px 16px;border-radius:var(--radius);font-size:13px;box-shadow:0 4px 16px rgba(0,0,0,.25);animation:toastIn .2s ease both;}
+.toast.err{background:var(--stamp);}
+@keyframes toastIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
+
+.file-preview{display:flex;align-items:center;gap:8px;margin-top:6px;font-size:11.5px;color:var(--ink-soft);font-family:var(--mono);min-height:0;}
+.file-preview:empty{display:none;}
+.file-preview img{max-width:72px;max-height:36px;border:1px solid var(--line);background:transparent;padding:2px;border-radius:var(--radius);}
+.file-preview .fp-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;}
+.file-input-hidden{position:absolute;width:1px;height:1px;overflow:hidden;opacity:0;}
+
+@media(max-width:860px){
+  .shell{flex-direction:column;}
+  .rail{width:100%;flex:none;position:sticky;top:0;height:auto;padding:14px 0;z-index:50;}
+  .tabs{display:flex;overflow-x:auto;padding:0 12px;gap:2px;}
+  .tabs button{width:auto;white-space:nowrap;border-left:none;border-bottom:3px solid transparent;padding:9px 12px;}
+  .tabs button[aria-selected="true"]{border-left:none;border-bottom-color:var(--accent);}
+  .brand,.rail-foot{display:none;}
+  .main{padding:20px 16px 60px;}
+}
+@media (prefers-reduced-motion: reduce){
+  *{animation-duration:.001ms !important;transition-duration:.001ms !important;}
+}
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<div class="shell">
+  <nav class="rail" aria-label="Builder sections">
+    <div class="brand">
+      <div class="brand-mark">SW</div>
+      <h1>Crate</h1>
+      <p>launcher builder</p>
+    </div>
+    <ul class="tabs" role="tablist" id="tabList">
+      <li role="presentation"><button role="tab" data-tab="project" aria-selected="true"><span class="num">01</span> Project</button></li>
+      <li role="presentation"><button role="tab" data-tab="apps" aria-selected="false"><span class="num">02</span> Applications</button></li>
+      <li role="presentation"><button role="tab" data-tab="launcher" aria-selected="false"><span class="num">03</span> Launcher Settings</button></li>
+      <li role="presentation"><button role="tab" data-tab="preview" aria-selected="false"><span class="num">04</span> Preview</button></li>
+      <li role="presentation"><button role="tab" data-tab="build" aria-selected="false"><span class="num">05</span> Build &amp; Export</button></li>
+    </ul>
+    <div class="rail-foot">
+      <button class="btn btn-sm" id="clearProjectBtn" type="button">Clear project</button>
+    </div>
+  </nav>
+
+  <main class="main" id="main">
+
+    <!-- ===================== PROJECT ===================== -->
+    <section class="panel active" id="panel-project">
+      <div class="page-head">
+        <div>
+          <p class="eyebrow">step 01 / manifest</p>
+          <h2>Project</h2>
+          <p>Name the crate you're shipping and choose how it's organized once extracted.</p>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-sm" id="importProjectBtn" type="button">Import project</button>
+          <button class="btn btn-sm" id="saveProjectBtn" type="button">Save project</button>
+        </div>
+      </div>
+      <input type="file" id="importProjectInput" class="file-input-hidden" accept="application/json">
+
+      <div class="ticket" style="padding:20px 22px;max-width:560px;">
+        <div class="field">
+          <label for="projectName">Project name</label>
+          <input type="text" id="projectName" value="Static-Web-Apps">
+          <p class="hint">Used as the ZIP file name and, optionally, the root folder inside it.</p>
+        </div>
+        <div class="field">
+          <label>Root folder</label>
+          <div class="radio-row">
+            <label><input type="radio" name="rootFolder" value="yes" checked> Wrap in <code>&lt;project-name&gt;/</code></label>
+            <label><input type="radio" name="rootFolder" value="no"> Files at ZIP root</label>
+          </div>
+          <p class="hint">Wrapped is easier to identify after extraction; unwrapped drops straight into a repo root.</p>
+        </div>
+      </div>
+
+      <div class="section-title">What you're building</div>
+      <div class="ticket" style="padding:18px 22px;font-size:13.5px;color:var(--ink-soft);max-width:640px;line-height:1.7;">
+        One repository → one animated launcher → many independent static apps.
+        Add your existing HTML apps in the <strong>Applications</strong> tab, each one keeps its own files,
+        CSS and JavaScript untouched. When you build, every app's entry file becomes <code>index.html</code>
+        inside its own folder, and the launcher on top links out to each of them by relative path — so it
+        works unmodified on GitHub Pages, Netlify, or any static host.
+      </div>
+    </section>
+
+    <!-- ===================== APPLICATIONS ===================== -->
+    <section class="panel" id="panel-apps">
+      <div class="page-head">
+        <div>
+          <p class="eyebrow">step 02 / cargo</p>
+          <h2>Applications</h2>
+          <p>Add each static app you want packaged. Drag to reorder — that order is what the launcher shows.</p>
+        </div>
+        <button class="btn btn-primary" id="addAppBtn" type="button">+ Add application</button>
+      </div>
+
+      <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Add an application by dropping files or a folder here, or press Enter to browse">
+        <div class="dz-icon">📦</div>
+        <p><strong>Drag &amp; drop</strong> a folder or files here</p>
+        <p>Each file drop becomes one application. A folder that holds several app folders (or several HTML files) can add them all at once.</p>
+        <div class="dz-actions">
+          <button class="btn btn-sm" id="pickFilesBtn" type="button">Choose files</button>
+          <button class="btn btn-sm" id="pickFolderBtn" type="button">Choose a folder</button>
+        </div>
+      </div>
+      <input type="file" id="filesInput" class="file-input-hidden" multiple>
+      <input type="file" id="folderInput" class="file-input-hidden" multiple webkitdirectory>
+
+      <div id="emptyAppsState" class="empty-state" style="margin-top:18px;">
+        <span class="glyph">🗂️</span>
+        <h3>No applications added yet</h3>
+        <p>Add your first static web application above to begin. Single HTML files and full multi-file folders both work.</p>
+      </div>
+
+      <div id="appList"></div>
+    </section>
+
+    <!-- ===================== LAUNCHER SETTINGS ===================== -->
+    <section class="panel" id="panel-launcher">
+      <div class="page-head">
+        <div>
+          <p class="eyebrow">step 03 / label</p>
+          <h2>Launcher settings</h2>
+          <p>Customize the animated dashboard that greets people at the repo's root URL.</p>
+        </div>
+      </div>
+
+      <div class="ticket" style="padding:22px;max-width:720px;">
+        <div class="section-title" style="margin-top:0;">Identity</div>
+        <div class="grid-2">
+          <div class="field">
+            <label for="launcherTitle">Launcher title</label>
+            <input type="text" id="launcherTitle" value="My Applications">
+          </div>
+          <div class="field">
+            <label for="launcherSubtitle">Subtitle <span class="hint">(optional)</span></label>
+            <input type="text" id="launcherSubtitle" placeholder="A small collection of tools">
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="field">
+            <label for="logoInput">Logo image <span class="hint">(optional)</span></label>
+            <input type="file" id="logoInput" accept="image/*,.svg,image/svg+xml">
+            <p class="hint">SVG, PNG, JPG, GIF or WebP.</p>
+            <div class="file-preview" id="logoPreview" aria-live="polite"></div>
+          </div>
+          <div class="field">
+            <label for="faviconInput">Favicon <span class="hint">(optional)</span></label>
+            <input type="file" id="faviconInput" accept="image/*,.ico,.svg,image/svg+xml">
+            <p class="hint">SVG, PNG or ICO.</p>
+            <div class="file-preview" id="faviconPreview" aria-live="polite"></div>
+          </div>
+        </div>
+
+        <div class="section-title">Appearance</div>
+        <div class="grid-2">
+          <div class="field">
+            <label for="themeSelect">Theme</label>
+            <select id="themeSelect">
+              <option value="system">System</option>
+              <option value="light">Light</option>
+              <option value="dark">Dark</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="layoutSelect">Card layout</label>
+            <select id="layoutSelect">
+              <option value="grid">Grid</option>
+              <option value="list">List</option>
+            </select>
+          </div>
+        </div>
+        <div class="toggle-row"><span>Show version on cards</span><label class="switch"><input type="checkbox" id="showVersion" checked><span class="track"></span></label></div>
+        <div class="toggle-row"><span>Show category on cards</span><label class="switch"><input type="checkbox" id="showCategory" checked><span class="track"></span></label></div>
+        <div class="toggle-row"><span>Show description on cards</span><label class="switch"><input type="checkbox" id="showDescription" checked><span class="track"></span></label></div>
+        <div class="toggle-row"><span>Category filter chips</span><label class="switch"><input type="checkbox" id="categoryFilterToggle" checked><span class="track"></span></label></div>
+
+        <details class="adv">
+          <summary>Animation</summary>
+          <div class="adv-body">
+            <div class="field">
+              <label>Animation style</label>
+              <div class="radio-row">
+                <label><input type="radio" name="animStyle" value="standard"> Standard</label>
+                <label><input type="radio" name="animStyle" value="smooth" checked> Smooth</label>
+                <label><input type="radio" name="animStyle" value="dynamic"> Dynamic</label>
+                <label><input type="radio" name="animStyle" value="minimal"> Minimal</label>
+                <label><input type="radio" name="animStyle" value="none"> None</label>
+              </div>
+            </div>
+            <div class="field">
+              <label for="animIntensity">Animation intensity</label>
+              <select id="animIntensity">
+                <option value="low">Low</option>
+                <option value="medium" selected>Medium</option>
+                <option value="high">High</option>
+              </select>
+            </div>
+            <p class="hint">The generated launcher also respects each visitor's system-level "reduce motion" setting automatically, regardless of this choice.</p>
+          </div>
+        </details>
+      </div>
+    </section>
+
+    <!-- ===================== PREVIEW ===================== -->
+    <section class="panel" id="panel-preview">
+      <div class="page-head">
+        <div>
+          <p class="eyebrow">step 04 / inspect</p>
+          <h2>Preview</h2>
+          <p>This is the animated launcher as it will look once deployed.</p>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-sm" id="refreshPreviewBtn" type="button">↻ Refresh</button>
+          <button class="btn btn-primary" id="previewToBuildBtn" type="button">Build ZIP →</button>
+        </div>
+      </div>
+      <div class="preview-frame-wrap">
+        <div class="preview-toolbar">
+          <div class="dots"><span></span><span></span><span></span></div>
+          <span style="font-family:var(--mono);font-size:11.5px;color:var(--ink-soft);" id="previewUrlLabel">/</span>
+        </div>
+        <iframe id="launcherFrame" title="Launcher preview" sandbox="allow-scripts allow-same-origin"></iframe>
+      </div>
+    </section>
+
+    <!-- ===================== BUILD ===================== -->
+    <section class="panel" id="panel-build">
+      <div class="page-head">
+        <div>
+          <p class="eyebrow">step 05 / ship</p>
+          <h2>Build &amp; export</h2>
+          <p>Validate the project, then generate a GitHub-ready ZIP or a single self-contained HTML file — entirely in your browser.</p>
+        </div>
+      </div>
+
+      <div id="validationErrors"></div>
+
+      <div class="ticket" style="padding:20px 22px;max-width:640px;">
+        <p style="margin:0 0 14px;font-size:13.5px;color:var(--ink-soft);">
+          Nothing leaves your browser. Files are read, packaged and zipped (or embedded) locally, then handed straight to your downloads folder.
+        </p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button class="btn" id="validateBtn" type="button">Validate project</button>
+          <button class="btn btn-stamp" id="buildBtn" type="button">Build ZIP</button>
+          <button class="btn btn-stamp" id="buildSingleBtn" type="button">Build Single HTML</button>
+        </div>
+        <p class="hint" style="margin-top:10px;max-width:56ch;">
+          <strong>Build Single HTML</strong> packages the launcher and every application into one <code>index.html</code> you can upload directly to GitHub Pages — no <code>apps.json</code> or <code>apps/</code> folder required.
+        </p>
+        <progress id="buildProgress" value="0" max="100" style="display:none;"></progress>
+        <div class="build-log" id="buildLog" style="display:none;" aria-live="polite"></div>
+      </div>
+
+      <div class="report" id="buildReport">
+        <div class="section-title">Build report</div>
+        <div class="report-grid">
+          <div class="stat"><b id="statApps">0</b><span>applications</span></div>
+          <div class="stat"><b id="statFiles">0</b><span>total files</span></div>
+          <div class="stat"><b id="statSize">0</b><span>package size</span></div>
+        </div>
+        <div class="tree" id="buildTree"></div>
+        <div style="margin-top:14px;">
+          <button class="btn btn-primary" id="downloadZipBtn" type="button">⬇ Download ZIP</button>
+        </div>
+      </div>
+
+      <div class="report" id="singleHtmlReport">
+        <div class="section-title">Single HTML build report</div>
+        <div class="report-grid">
+          <div class="stat"><b id="singleStatApps">0</b><span>applications</span></div>
+          <div class="stat"><b id="singleStatFiles">0</b><span>files bundled</span></div>
+          <div class="stat"><b id="singleStatSize">0</b><span>file size</span></div>
+        </div>
+        <p class="hint" style="margin:0 0 4px;">Upload the downloaded file to a GitHub repository (rename it to <code>index.html</code> for the repo root) and enable GitHub Pages.</p>
+        <div id="singleHtmlWarnings"></div>
+        <div style="margin-top:14px;">
+          <button class="btn btn-primary" id="downloadSingleHtmlBtn" type="button">⬇ Download Single HTML</button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- ===================== MODAL ===================== -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-head">
+      <h3 id="modalTitle">Application</h3>
+      <button class="close-x" id="modalClose" aria-label="Close">✕</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-foot" id="modalFoot"></div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script>
+(function(){
+"use strict";
+
+/* ============================================================
+   STATE
+   ============================================================ */
+const TEXT_EXT = new Set(['html','htm','css','js','mjs','json','svg','txt','md','xml','csv','webmanifest']);
+const state = {
+  apps: [],            // {uid,id,name,description,version,category,entryPath,files:[{relPath,isText,text,buffer,ext}],htmlFiles:[],icon:{type,value},autoIcon,detectedIconPath}
+  settings: {
+    projectName: 'Static-Web-Apps',
+    rootFolder: true,
+    launcherTitle: 'My Applications',
+    subtitle: '',
+    theme: 'system',
+    layout: 'grid',
+    showVersion: true,
+    showCategory: true,
+    showDescription: true,
+    categoryFilter: true,
+    animStyle: 'smooth',
+    animIntensity: 'medium',
+    logo: null,     // {name, ext, buffer, dataUrl}
+    favicon: null
+  },
+  lastZipBlob: null,
+  lastZipStats: null,
+  lastSingleHtmlBlob: null,
+  lastSingleHtmlStats: null
+};
+let uidCounter = 1;
+
+const ICON_MAP = [
+  [['result','marks','grade','score'], '📊'],
+  [['question','exam','paper','quiz'], '📝'],
+  [['expense','khata','money','finance','budget'], '💰'],
+  [['library','book','books','student'], '📚'],
+  [['calculator','calculation','math','risk'], '🧮'],
+  [['calendar','schedule','event'], '📅'],
+  [['document','report','file'], '📄'],
+  [['education','school','learning','teacher'], '🎓'],
+  [['settings','configuration','utility'], '⚙️'],
+  [['security','password','encryption'], '🔐'],
+  [['database','data'], '🗄️'],
+  [['image','photo','picture','editor'], '🖼️']
+];
+const DEFAULT_ICON = '🧩';
+
+/* ============================================================
+   UTIL
+   ============================================================ */
+function $(sel,root){return (root||document).querySelector(sel);}
+function $all(sel,root){return Array.from((root||document).querySelectorAll(sel));}
+function extOf(name){const m=/\.([a-z0-9]+)$/i.exec(name);return m?m[1].toLowerCase():'';}
+function isText(ext){return TEXT_EXT.has(ext);}
+function esc(str){return String(str==null?'':str).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+
+function slugify(str){
+  return (str||'app')
+    .toString().toLowerCase()
+    .normalize('NFKD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^a-z0-9]+/g,'-')
+    .replace(/^-+|-+$/g,'')
+    .replace(/-{2,}/g,'-') || 'app';
+}
+function sanitizePathSegments(path){
+  return path.split('/').map(s=>s.trim()).filter(s=>s!=='' && s!=='.' && s!=='..').join('/');
+}
+function titleCaseFromFilename(name){
+  const base = name.replace(/\.[a-z0-9]+$/i,'');
+  return base.replace(/[_\-]+/g,' ').replace(/([a-z])([A-Z])/g,'$1 $2')
+    .split(' ').filter(Boolean).map(w=>w.charAt(0).toUpperCase()+w.slice(1)).join(' ') || 'Untitled App';
+}
+function bytesToSize(bytes){
+  if(!bytes) return '0 B';
+  const u=['B','KB','MB','GB'];let i=0;
+  while(bytes>=1024 && i<u.length-1){bytes/=1024;i++;}
+  return bytes.toFixed(i===0?0:1)+' '+u[i];
+}
+function toast(msg,isErr){
+  const el=document.createElement('div');
+  el.className='toast'+(isErr?' err':'');
+  el.textContent=msg;
+  $('#toastWrap').appendChild(el);
+  setTimeout(()=>el.remove(),3600);
+}
+function readFileAsArrayBuffer(file){
+  return new Promise((resolve,reject)=>{
+    const r=new FileReader();
+    r.onload=()=>resolve(r.result);
+    r.onerror=()=>reject(r.error);
+    r.readAsArrayBuffer(file);
+  });
+}
+function bufToDataUrl(buffer,mime){
+  let binary='';const bytes=new Uint8Array(buffer);
+  for(let i=0;i<bytes.byteLength;i++) binary+=String.fromCharCode(bytes[i]);
+  return 'data:'+mime+';base64,'+btoa(binary);
+}
+function guessMime(ext){
+  const m={png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',gif:'image/gif',svg:'image/svg+xml',webp:'image/webp',ico:'image/x-icon',bmp:'image/bmp',avif:'image/avif'};
+  return m[ext]||'application/octet-stream';
+}
+function bufToText(buffer){
+  return new TextDecoder('utf-8').decode(buffer);
+}
+function textToBuf(text){
+  return new TextEncoder().encode(text);
+}
+
+/* ---- SVG / branding-image helpers ---- */
+const RASTER_IMG_EXT = new Set(['png','jpg','jpeg','gif','webp','ico','bmp','avif']);
+function looksLikeSvg(buffer){
+  try{ return /<svg[\s>]/i.test(bufToText(buffer.slice(0, 65536))); }catch(e){ return false; }
+}
+// Works out the real image extension from file name, MIME type, then content sniffing,
+// so SVGs are recognised even when the OS reports no MIME type or the name has no extension.
+function detectImageExt(file, buffer){
+  const byName = extOf(file.name);
+  const type = (file.type||'').toLowerCase();
+  if(byName==='svg' || type==='image/svg+xml') return 'svg';
+  if(RASTER_IMG_EXT.has(byName)) return byName;
+  if(looksLikeSvg(buffer)) return 'svg';
+  const byType = {'image/png':'png','image/jpeg':'jpg','image/gif':'gif','image/webp':'webp','image/x-icon':'ico','image/vnd.microsoft.icon':'ico','image/bmp':'bmp','image/avif':'avif'};
+  return byType[type] || byName || 'png';
+}
+function isImageFile(file, ext){
+  return (file.type||'').toLowerCase().startsWith('image/') || ext==='svg' || RASTER_IMG_EXT.has(ext);
+}
+function faviconLinkTag(href, ext){
+  const mime = guessMime(ext);
+  return '<link rel="icon"'+(mime!=='application/octet-stream' ? ' type="'+mime+'"' : '')+(ext==='svg' ? ' sizes="any"' : '')+' href="'+href+'">';
+}
+
+/* ============================================================
+   TABS
+   ============================================================ */
+$all('.tabs button').forEach(btn=>{
+  btn.addEventListener('click',()=>selectTab(btn.dataset.tab));
+});
+function selectTab(name){
+  $all('.tabs button').forEach(b=>b.setAttribute('aria-selected', b.dataset.tab===name?'true':'false'));
+  $all('.panel').forEach(p=>p.classList.remove('active'));
+  $('#panel-'+name).classList.add('active');
+  if(name==='preview') renderPreview();
+}
+$('#previewToBuildBtn').addEventListener('click',()=>selectTab('build'));
+
+/* ============================================================
+   ADD APPLICATION — file intake
+   ============================================================ */
+const dropzone = $('#dropzone');
+['dragenter','dragover'].forEach(ev=>dropzone.addEventListener(ev,e=>{e.preventDefault();dropzone.classList.add('drag');}));
+['dragleave','drop'].forEach(ev=>dropzone.addEventListener(ev,e=>{e.preventDefault();dropzone.classList.remove('drag');}));
+dropzone.addEventListener('drop', async (e)=>{
+  const items = e.dataTransfer.items;
+  let fileList = [];
+  if(items && items.length && items[0].webkitGetAsEntry){
+    const entries = Array.from(items).map(it=>it.webkitGetAsEntry()).filter(Boolean);
+    fileList = await readEntries(entries);
+  } else {
+    fileList = Array.from(e.dataTransfer.files).map(f=>({file:f, relPath:f.name}));
+  }
+  if(fileList.length) handleIncomingFiles(fileList);
+});
+dropzone.addEventListener('keydown', e=>{ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); $('#filesInput').click(); }});
+dropzone.addEventListener('click', ()=> $('#filesInput').click());
+
+$('#pickFilesBtn').addEventListener('click', e=>{e.stopPropagation(); $('#filesInput').click();});
+$('#pickFolderBtn').addEventListener('click', e=>{e.stopPropagation(); $('#folderInput').click();});
+$('#addAppBtn').addEventListener('click', ()=>{ selectTab('apps'); $('#filesInput').click(); });
+
+$('#filesInput').addEventListener('change', e=>{
+  const files = Array.from(e.target.files).map(f=>({file:f, relPath: f.webkitRelativePath || f.name}));
+  if(files.length) handleIncomingFiles(files);
+  e.target.value='';
+});
+$('#folderInput').addEventListener('change', e=>{
+  const files = Array.from(e.target.files).map(f=>({file:f, relPath: f.webkitRelativePath || f.name}));
+  if(files.length) handleIncomingFiles(files);
+  e.target.value='';
+});
+
+function readEntries(entries){
+  return new Promise((resolve)=>{
+    const results=[];
+    let pending=0, done=false;
+    function checkDone(){ if(done && pending===0) resolve(results); }
+    function walk(entry, prefix){
+      if(entry.isFile){
+        pending++;
+        entry.file(file=>{
+          results.push({file, relPath: prefix + entry.name});
+          pending--; checkDone();
+        }, ()=>{pending--;checkDone();});
+      } else if(entry.isDirectory){
+        pending++;
+        const reader = entry.createReader();
+        const readBatch=()=>{
+          reader.readEntries(batch=>{
+            if(batch.length===0){ pending--; checkDone(); return; }
+            batch.forEach(child=>walk(child, prefix+entry.name+'/'));
+            readBatch();
+          }, ()=>{pending--;checkDone();});
+        };
+        readBatch();
+      }
+    }
+    entries.forEach(en=>walk(en,''));
+    done=true; checkDone();
+  });
+}
+
+const IGNORED_ALWAYS_DIRS = new Set(['.git','.svn','.hg','__macosx']);          // never packaged
+const IGNORED_APP_DIRS    = new Set(['node_modules','.git','.svn','.hg','__macosx']); // never treated as an app
+const IGNORED_FILES       = new Set(['.ds_store','thumbs.db','desktop.ini']);
+function isHtmlExt(ext){ return ext==='html' || ext==='htm'; }
+function isJunkPath(relPath){
+  const parts = relPath.split('/');
+  if(IGNORED_FILES.has(parts[parts.length-1].toLowerCase())) return true;
+  return parts.slice(0,-1).some(seg=>IGNORED_ALWAYS_DIRS.has(seg.toLowerCase()));
+}
+function reportAdded(createdApps, skippedFiles){
+  renderAppList();
+  if(createdApps.length===0){
+    toast('No applications with an HTML entry file were found in that upload.', true);
+  } else {
+    toast('Added '+createdApps.length+' application'+(createdApps.length===1?'':'s')+'.'
+      + (skippedFiles?' ('+skippedFiles+' unrelated file(s) skipped.)':'')
+      + ' Use Edit on a card to review or adjust it.');
+  }
+}
+
+async function handleIncomingFiles(fileList){
+  // Folder selections ("Choose a folder" / dropped folders): every file sits inside at least one folder.
+  const rels = fileList.map(f=>f.relPath.split('/').filter(Boolean));
+  if(rels.length && rels.every(r=>r.length>1)){
+    await handleFolderUpload(fileList, rels);
+    return;
+  }
+
+  toast('Reading '+fileList.length+' file(s)…');
+  const read = await Promise.all(fileList.map(async ({file,relPath})=>{
+    const cleanRel = sanitizePathSegments(relPath.split('/').filter(Boolean).join('/')) || file.name;
+    const ext = extOf(file.name);
+    const buffer = await readFileAsArrayBuffer(file);
+    const textish = isText(ext);
+    return {relPath: cleanRel, ext, isText: textish, buffer, text: textish? bufToText(buffer): null};
+  }));
+
+  const createdApps = [];
+  let skippedFiles = 0;
+
+  // Flat selection via "Choose files" (no folder structure). A single HTML file, plus
+  // any accompanying css/js/images also selected, is one application. Selecting several
+  // HTML files at once adds several applications in one shot — each HTML file becomes
+  // its own app, paired up with any selected same-named resource files (e.g. app.html +
+  // app.css + app.js grouped together by matching filename).
+  const htmlEntries = read.filter(f=>f.ext==='html'||f.ext==='htm');
+  if(htmlEntries.length<=1){
+    const app = buildPendingApp(read, titleCaseFromFilename(fileList[0].file.name));
+    if(app) createdApps.push(app);
+  } else {
+    const used = new Set();
+    htmlEntries.forEach(entry=>{
+      const stem = entry.relPath.replace(/\.[^.]+$/,'').toLowerCase();
+      const groupFiles = [entry];
+      used.add(entry);
+      read.forEach(f=>{
+        if(f===entry || used.has(f)) return;
+        const fStem = f.relPath.replace(/\.[^.]+$/,'').toLowerCase();
+        if(fStem===stem){ groupFiles.push(f); used.add(f); }
+      });
+      const app = buildPendingApp(groupFiles, titleCaseFromFilename(entry.relPath));
+      if(app) createdApps.push(app);
+    });
+    skippedFiles = read.filter(f=>!used.has(f)).length;
+  }
+  reportAdded(createdApps, skippedFiles);
+}
+
+/* ---------- Folder uploads ----------
+   Rules (applied to the folder the user picked, or to several dropped folders):
+   1. The folder has HTML at its own top level  → it IS one application (as before) …
+        · …unless it has 2+ HTML files and no index.html, or it also contains 2+ sub-folders that
+          each look like an app — then you're asked whether to add them separately.
+   2. No HTML at the top level → every sub-folder that has HTML directly inside it is an application.
+      Wrapper/category folders (no HTML of their own) are looked through at any depth.
+   Dropping several folders at once is treated like a container holding those folders. */
+async function handleFolderUpload(fileList, rels){
+  const roots = new Set(rels.map(r=>r[0]));
+  const dirName = roots.size===1 ? rels[0][0] : '';   // '' = several folders dropped together
+  toast('Reading '+fileList.length+' file(s)…');
+
+  const entries = [];
+  fileList.forEach(({file}, i)=>{
+    const parts = dirName ? rels[i].slice(1) : rels[i];
+    const cleanRel = sanitizePathSegments(parts.join('/')) || file.name;
+    if(isJunkPath(cleanRel)) return;
+    entries.push({file, relPath: cleanRel, ext: extOf(file.name)});
+  });
+
+  let plan;
+  try{ plan = await planFolderUpload(entries, dirName); }
+  catch(err){ console.error(err); toast('Could not read that folder.', true); return; }
+  if(!plan){ toast('Upload cancelled.'); return; }
+
+  const createdApps = [];
+  const used = new Set();
+  for(const item of plan){
+    const files = await Promise.all(item.entries.map(readEntry));
+    item.entries.forEach(e=>used.add(e.file));
+    const app = buildPendingApp(files, item.name);
+    if(app) createdApps.push(app);
+  }
+  reportAdded(createdApps, entries.length - used.size);
+}
+
+async function ensureBuffer(e){
+  if(!e.buffer) e.buffer = await readFileAsArrayBuffer(e.file);
+  return e.buffer;
+}
+async function readEntry(e){
+  const buffer = await ensureBuffer(e);
+  const textish = isText(e.ext);
+  return {relPath:e.relPath, ext:e.ext, isText:textish, buffer, text: textish ? bufToText(buffer) : null};
+}
+
+function hasRootHtml(list){ return list.some(e=>!e.relPath.includes('/') && isHtmlExt(e.ext)); }
+
+// Finds application folders inside a container. `list` paths are relative to that container.
+function findAppsIn(list){
+  const found = [];
+  const groups = new Map();
+  list.forEach(e=>{
+    const i = e.relPath.indexOf('/');
+    if(i===-1) return;                       // loose file directly in the container
+    const key = e.relPath.slice(0,i);
+    if(!groups.has(key)) groups.set(key,[]);
+    groups.get(key).push({...e, relPath: e.relPath.slice(i+1)});
+  });
+  for(const [name, sub] of groups){
+    if(name.startsWith('.') || IGNORED_APP_DIRS.has(name.toLowerCase())) continue;
+    if(!sub.some(e=>isHtmlExt(e.ext))) continue;          // assets-only folder
+    if(hasRootHtml(sub)){ found.push({name, entries: sub}); continue; }
+    // HTML only deeper down: a wrapper / category folder — look through it. (Using the inner
+    // app folder itself keeps each entry page next to the assets it references.)
+    found.push(...findAppsIn(sub));
+  }
+  return found;
+}
+
+async function planFolderUpload(entries, dirName){
+  const asOne = ()=>[{name: titleCaseFromFilename(dirName || 'App'), entries}];
+  const rootHtml = entries.filter(e=>!e.relPath.includes('/') && isHtmlExt(e.ext));
+
+  if(rootHtml.length===0){
+    return findAppsIn(entries).map(a=>({name: titleCaseFromFilename(a.name), entries: a.entries}));
+  }
+
+  const hasIndex = rootHtml.some(e=>/^index\.html?$/i.test(e.relPath));
+  if(rootHtml.length>=2 && !hasIndex){
+    const choice = await askChoice(
+      'Add these HTML files as separate applications?',
+      '<p style="margin-top:0;">The folder <strong>'+esc(dirName||'you selected')+'</strong> contains <strong>'+rootHtml.length+' HTML files</strong> and no <code>index.html</code>.</p>'
+      + '<ul style="margin:0 0 10px;padding-left:18px;font-size:13px;color:var(--ink-soft);">'
+      + rootHtml.slice(0,8).map(e=>'<li>'+esc(e.relPath)+'</li>').join('')
+      + (rootHtml.length>8 ? '<li>…and '+(rootHtml.length-8)+' more</li>' : '') + '</ul>'
+      + '<p class="hint">Separate applications: each HTML file becomes its own app, and the CSS, JS, images and fonts it references are copied along with it (files loaded only from JavaScript can\'t be detected). One application: the whole folder is a single multi-page app.</p>',
+      [{id:'one', label:'One application'}, {id:'many', label:rootHtml.length+' separate applications', primary:true}]
+    );
+    if(choice===null) return null;
+    return choice==='many' ? await splitStandaloneHtml(entries, rootHtml) : asOne();
+  }
+
+  const subApps = findAppsIn(entries);
+  if(subApps.length>=2){
+    const choice = await askChoice(
+      'Add the sub-folders as separate applications?',
+      '<p style="margin-top:0;">The folder <strong>'+esc(dirName||'you selected')+'</strong> has its own HTML page, but it also contains <strong>'+subApps.length+' sub-folders</strong> that each look like an application:</p>'
+      + '<ul style="margin:0 0 10px;padding-left:18px;font-size:13px;color:var(--ink-soft);">'
+      + subApps.slice(0,8).map(a=>'<li>'+esc(a.name)+'</li>').join('')
+      + (subApps.length>8 ? '<li>…and '+(subApps.length-8)+' more</li>' : '') + '</ul>'
+      + '<p class="hint">Separate applications: one app per sub-folder (files in the top-level folder are skipped). One application: the whole folder is a single app.</p>',
+      [{id:'one', label:'One application'}, {id:'many', label:subApps.length+' separate applications', primary:true}]
+    );
+    if(choice===null) return null;
+    if(choice==='many') return subApps.map(a=>({name: titleCaseFromFilename(a.name), entries: a.entries}));
+  }
+  return asOne();
+}
+
+/* ---- each top-level HTML file → its own app, plus the files it needs ---- */
+function extractLocalRefs(text, ext){
+  const refs = [];
+  const add = v=>{ v=(v||'').trim(); if(v) refs.push(v); };
+  let m;
+  const urlRe = /url\(\s*(['"]?)([^'")]+)\1\s*\)/gi;
+  while((m=urlRe.exec(text))) add(m[2]);
+  const importRe = /@import\s+['"]([^'"]+)['"]/gi;
+  while((m=importRe.exec(text))) add(m[1]);
+  if(ext!=='css'){
+    const tagRe = /<([a-z][a-z0-9-]*)\b([^>]*)>/gi;
+    while((m=tagRe.exec(text))){
+      const tag = m[1].toLowerCase();
+      if(tag==='a' || tag==='area' || tag==='base') continue;    // page links aren't dependencies
+      const attrRe = /\b(srcset|data-srcset|src|href|poster|data-src|data)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/gi;
+      let a;
+      while((a=attrRe.exec(m[2]))){
+        const name = a[1].toLowerCase();
+        const val = a[2]!==undefined ? a[2] : (a[3]!==undefined ? a[3] : a[4]);
+        if(name==='srcset' || name==='data-srcset') val.split(',').forEach(part=>add(part.trim().split(/\s+/)[0]));
+        else add(val);
+      }
+    }
+  }
+  return refs;
+}
+function resolveLocalRef(fromRel, ref, lookup){
+  let r = ref.split('#')[0].split('?')[0].trim();
+  if(!r || /^(?:[a-z][a-z0-9+.-]*:|\/\/)/i.test(r)) return null;     // http:, data:, mailto:, //cdn… etc.
+  try{ r = decodeURIComponent(r); }catch(e){}
+  const parts = r.startsWith('/') ? r.split('/') : fromRel.split('/').slice(0,-1).concat(r.split('/'));
+  const out = [];
+  for(const p of parts){
+    if(!p || p==='.') continue;
+    if(p==='..'){ if(!out.length) return null; out.pop(); } else out.push(p);
+  }
+  return lookup.get(out.join('/').toLowerCase()) || null;
+}
+async function splitStandaloneHtml(entries, htmlEntries){
+  const lookup = new Map(entries.map(e=>[e.relPath.toLowerCase(), e]));
+  const result = [];
+  for(const h of htmlEntries){
+    const picked = new Map([[h.relPath, h]]);
+    const stem = h.relPath.replace(/\.[^.]+$/,'').toLowerCase();
+    const queue = [h];
+    entries.forEach(e=>{                       // same-named companions: app.html + app.css + app.js
+      if(e===h || e.relPath.includes('/') || isHtmlExt(e.ext)) return;
+      if(e.relPath.replace(/\.[^.]+$/,'').toLowerCase()===stem){ picked.set(e.relPath, e); queue.push(e); }
+    });
+    while(queue.length){                       // follow references through HTML and CSS
+      const cur = queue.pop();
+      if(!isHtmlExt(cur.ext) && cur.ext!=='css') continue;
+      const text = bufToText(await ensureBuffer(cur));
+      for(const ref of extractLocalRefs(text, cur.ext)){
+        const target = resolveLocalRef(cur.relPath, ref, lookup);
+        if(target && !isHtmlExt(target.ext) && !picked.has(target.relPath)){ picked.set(target.relPath, target); queue.push(target); }
+      }
+    }
+    result.push({name: titleCaseFromFilename(h.relPath), entries: Array.from(picked.values())});
+  }
+  return result;
+}
+
+/* ---- small two/three-button chooser built on the existing modal ---- */
+let choiceResolver = null;
+function askChoice(title, bodyHtml, choices){
+  return new Promise(resolve=>{
+    choiceResolver = resolve;
+    $('#modalTitle').textContent = title;
+    $('#modalBody').innerHTML = bodyHtml;
+    $('#modalFoot').innerHTML = choices.map(c=>'<button class="btn'+(c.primary?' btn-primary':'')+'" data-choice="'+esc(c.id)+'" type="button">'+esc(c.label)+'</button>').join('');
+    $all('#modalFoot [data-choice]').forEach(b=>b.addEventListener('click', ()=>{
+      const r = choiceResolver; choiceResolver = null;
+      closeModal();
+      if(r) r(b.dataset.choice);
+    }));
+    overlay.classList.add('open');
+    const primary = $('#modalFoot .btn-primary'); if(primary) primary.focus();
+  });
+}
+
+function buildPendingApp(files, suggestedName){
+  const htmlFiles = files.filter(f=>f.ext==='html'||f.ext==='htm').map(f=>f.relPath);
+  if(htmlFiles.length===0){
+    toast('No HTML file found in that upload — every application needs at least one .html file.', true);
+    return null;
+  }
+  let entryPath = htmlFiles.includes('index.html') ? 'index.html' : htmlFiles[0];
+
+  // parse entry for metadata
+  const entryFile = files.find(f=>f.relPath===entryPath);
+  const meta = parseHtmlMeta(entryFile ? entryFile.text : '', files);
+
+  const name = meta.title || suggestedName || 'Untitled App';
+  let id = ensureUniqueId(slugify(name));
+  const combinedText = [name, meta.title, meta.description, meta.headings.join(' '), meta.keywords].join(' ');
+  const iconSuggestions = suggestIconCandidates(combinedText);
+  const autoIcon = iconSuggestions[0] || DEFAULT_ICON;
+  const descCandidates = buildDescriptionCandidates(name, meta);
+  const initialDescription = meta.description || (meta.headings[0] ? meta.headings[0] : descCandidates[0]);
+
+  const app = {
+    uid: uidCounter++,
+    id, name,
+    description: initialDescription,
+    version: '1.0',
+    category: '',
+    entryPath,
+    htmlFiles,
+    files,
+    icon: {type:'auto', value: autoIcon},
+    autoIcon,
+    iconSuggestions,
+    descCandidates,
+    descIndex: Math.max(0, descCandidates.indexOf(initialDescription)),
+    detectedIconPath: meta.iconPath || null
+  };
+  state.apps.push(app);
+  return app;
+}
+
+function parseHtmlMeta(html, files){
+  const out = {title:null, description:null, headings:[], firstParagraph:null, keywords:'', iconPath:null};
+  if(!html) return out;
+  try{
+    const doc = new DOMParser().parseFromString(html,'text/html');
+    if(doc.title) out.title = doc.title.trim();
+    const desc = doc.querySelector('meta[name="description" i]');
+    if(desc) out.description = (desc.getAttribute('content')||'').trim();
+    const kw = doc.querySelector('meta[name="keywords" i]');
+    if(kw) out.keywords = kw.getAttribute('content')||'';
+    $all('h1,h2,h3',doc).slice(0,4).forEach(h=>{ const t=h.textContent.trim(); if(t) out.headings.push(t); });
+    const p = doc.querySelector('p');
+    if(p && p.textContent.trim()) out.firstParagraph = p.textContent.trim().slice(0,160);
+    if(!out.description && out.firstParagraph){ out.description = out.firstParagraph; }
+    const iconLink = doc.querySelector('link[rel~="icon" i], link[rel="apple-touch-icon" i]');
+    if(iconLink){
+      let href = (iconLink.getAttribute('href')||'').replace(/^\.?\//,'');
+      const match = files.find(f=>f.relPath===href || f.relPath.endsWith('/'+href));
+      if(match) out.iconPath = match.relPath;
+    }
+  }catch(e){ /* ignore parse errors, fall back to defaults */ }
+  return out;
+}
+
+/* ---- icon suggestions (5-10 candidates, relevance-ranked) ---- */
+const GENERIC_ICON_POOL = ['🧩','📦','🚀','✨','🖥️','🌐','📁','🗂️','⭐','🔧','🛠️','📌','💡','🧭'];
+function suggestIconCandidates(text){
+  const t = (text||'').toLowerCase();
+  const matched = [];
+  ICON_MAP.forEach(([keywords, icon])=>{
+    if(keywords.some(k=>t.includes(k)) && !matched.includes(icon)) matched.push(icon);
+  });
+  const result = matched.slice(0,10);
+  let i=0;
+  while(result.length<5 && i<GENERIC_ICON_POOL.length){
+    const cand = GENERIC_ICON_POOL[i++];
+    if(!result.includes(cand)) result.push(cand);
+  }
+  return result.slice(0,10);
+}
+
+/* ---- short-description suggestions (cycled with the 🔄 button) ---- */
+function buildDescriptionCandidates(name, meta){
+  const cands = [];
+  const push = (s)=>{ s=(s||'').trim(); if(s && s.length>2 && !cands.includes(s)) cands.push(s.length>160? s.slice(0,157)+'…' : s); };
+  push(meta.description);
+  (meta.headings||[]).forEach(h=>push(h));
+  push(meta.firstParagraph);
+  push('A static web application for '+name+'.');
+  push('Open '+name+' to get started right away.');
+  push('A lightweight, self-contained tool — '+name+'.');
+  push(name+', packaged as an independent static app.');
+  push('Part of your application collection: '+name+'.');
+  return cands.length ? cands : ['A static web application.'];
+}
+
+function ensureUniqueId(id, excludeUid){
+  let candidate = id, n=2;
+  while(state.apps.some(a=>a.id===candidate && a.uid!==excludeUid)){
+    candidate = id+'-'+n; n++;
+  }
+  return candidate;
+}
+
+/* ============================================================
+   APP LIST RENDER + reorder + actions
+   ============================================================ */
+function analysisTags(app){
+  const exts = new Set(app.files.map(f=>f.ext));
+  const tags=[];
+  tags.push(app.files.length>1 ? 'Multi-file' : 'Single HTML');
+  if(exts.has('css')) tags.push('CSS');
+  if(exts.has('js')) tags.push('JS');
+  if(['png','jpg','jpeg','gif','svg','webp'].some(e=>exts.has(e))) tags.push('Images');
+  if(['woff','woff2','ttf','otf'].some(e=>exts.has(e))) tags.push('Fonts');
+  return tags;
+}
+
+function iconGlyphOrImg(app, sizeStyle){
+  if(app.icon.type==='emoji' || app.icon.type==='auto'){
+    return '<span>'+esc(app.icon.value||app.autoIcon)+'</span>';
+  }
+  if(app.icon.type==='existing'){
+    const f = app.files.find(x=>x.relPath===app.icon.value);
+    if(f && (!f.isText || f.ext==='svg') && f.buffer) return '<img src="'+bufToDataUrl(f.buffer, guessMime(f.ext))+'" alt="">';
+  }
+  if(app.icon.type==='upload' && app.icon.dataUrl){
+    return '<img src="'+app.icon.dataUrl+'" alt="">';
+  }
+  return '<span>'+esc(app.autoIcon)+'</span>';
+}
+
+function renderAppList(){
+  const list = $('#appList');
+  const empty = $('#emptyAppsState');
+  if(state.apps.length===0){
+    list.innerHTML='';
+    empty.style.display='block';
+    return;
+  }
+  empty.style.display='none';
+  list.innerHTML = state.apps.map((app,idx)=>{
+    const tags = analysisTags(app);
+    return '<div class="app-card" draggable="true" data-uid="'+app.uid+'" data-idx="'+idx+'">'
+      + '<div class="drag-handle" aria-hidden="true">⠿</div>'
+      + '<div class="reorder-btns">'
+      +   '<button type="button" class="moveUp" aria-label="Move up" '+(idx===0?'disabled':'')+'>▲</button>'
+      +   '<button type="button" class="moveDown" aria-label="Move down" '+(idx===state.apps.length-1?'disabled':'')+'>▼</button>'
+      + '</div>'
+      + '<div class="app-icon">'+iconGlyphOrImg(app)+'</div>'
+      + '<div class="app-body">'
+      +   '<div class="app-title-row"><h4>'+esc(app.name)+'</h4><span class="app-id">'+esc(app.id)+'</span></div>'
+      +   '<p class="app-desc">'+esc(app.description)+'</p>'
+      +   '<div class="app-meta">'
+      +     '<span>v'+esc(app.version||'1.0')+'</span>'
+      +     (app.category?'<span>'+esc(app.category)+'</span>':'')
+      +     '<span>'+app.files.length+' file'+(app.files.length===1?'':'s')+'</span>'
+      +     '<span>entry: '+esc(app.entryPath)+'</span>'
+      +   '</div>'
+      +   '<div class="app-meta" style="margin-top:6px;">'+tags.map(t=>'<span class="badge">'+esc(t)+'</span>').join(' ')+'</div>'
+      +   '<div class="app-actions">'
+      +     '<button class="btn btn-sm editBtn" type="button">Edit</button>'
+      +     '<button class="btn btn-sm previewBtn" type="button">Preview</button>'
+      +     '<button class="btn btn-sm duplicateBtn" type="button">Duplicate</button>'
+      +     '<button class="btn btn-sm btn-danger removeBtn" type="button">Remove</button>'
+      +   '</div>'
+      + '</div>'
+    + '</div>';
+  }).join('');
+
+  $all('.app-card',list).forEach(card=>{
+    const uid = Number(card.dataset.uid);
+    $('.editBtn',card).addEventListener('click',()=>openAppModal(uid,false));
+    $('.previewBtn',card).addEventListener('click',()=>previewApp(uid));
+    $('.duplicateBtn',card).addEventListener('click',()=>duplicateApp(uid));
+    $('.removeBtn',card).addEventListener('click',()=>removeApp(uid));
+    $('.moveUp',card).addEventListener('click',()=>moveApp(uid,-1));
+    $('.moveDown',card).addEventListener('click',()=>moveApp(uid,1));
+    card.addEventListener('dragstart', e=>{ card.classList.add('dragging'); e.dataTransfer.setData('text/plain', String(uid)); });
+    card.addEventListener('dragend', ()=> card.classList.remove('dragging'));
+    card.addEventListener('dragover', e=>{ e.preventDefault(); card.classList.add('drop-target'); });
+    card.addEventListener('dragleave', ()=> card.classList.remove('drop-target'));
+    card.addEventListener('drop', e=>{
+      e.preventDefault(); card.classList.remove('drop-target');
+      const draggedUid = Number(e.dataTransfer.getData('text/plain'));
+      reorderByUid(draggedUid, uid);
+    });
+  });
+}
+
+function moveApp(uid, dir){
+  const i = state.apps.findIndex(a=>a.uid===uid);
+  const j = i+dir;
+  if(j<0 || j>=state.apps.length) return;
+  const tmp = state.apps[i]; state.apps[i]=state.apps[j]; state.apps[j]=tmp;
+  renderAppList();
+}
+function reorderByUid(draggedUid, targetUid){
+  if(draggedUid===targetUid) return;
+  const from = state.apps.findIndex(a=>a.uid===draggedUid);
+  const to = state.apps.findIndex(a=>a.uid===targetUid);
+  if(from<0||to<0) return;
+  const [moved] = state.apps.splice(from,1);
+  state.apps.splice(to,0,moved);
+  renderAppList();
+}
+function removeApp(uid){
+  const app = state.apps.find(a=>a.uid===uid);
+  if(!app) return;
+  if(!confirm('Remove "'+app.name+'" from this build? This only affects the current project, not your original files.')) return;
+  state.apps = state.apps.filter(a=>a.uid!==uid);
+  renderAppList();
+  toast('Removed '+app.name);
+}
+function duplicateApp(uid){
+  const app = state.apps.find(a=>a.uid===uid);
+  if(!app) return;
+  const copy = JSON.parse(JSON.stringify(app, (k,v)=> v instanceof ArrayBuffer ? Array.from(new Uint8Array(v)) : v));
+  copy.files = app.files.map(f=>({...f, buffer: f.buffer ? f.buffer.slice(0) : f.buffer}));
+  copy.uid = uidCounter++;
+  copy.id = ensureUniqueId(app.id+'-copy');
+  copy.name = app.name+' (copy)';
+  const idx = state.apps.findIndex(a=>a.uid===uid);
+  state.apps.splice(idx+1,0,copy);
+  renderAppList();
+  toast('Duplicated as '+copy.id);
+}
+function previewApp(uid){
+  const app = state.apps.find(a=>a.uid===uid);
+  if(!app) return;
+  const entry = app.files.find(f=>f.relPath===app.entryPath);
+  if(!entry){ toast('No entry file to preview', true); return; }
+  const w = window.open('', '_blank');
+  if(!w){ toast('Allow popups to preview this application', true); return; }
+  w.document.open();
+  w.document.write(entry.text);
+  w.document.write('<!-- Preview only: files outside this HTML (CSS/JS/images referenced by relative path) may not load here. Full functionality is available once deployed. -->');
+  w.document.close();
+}
+
+/* ============================================================
+   APP EDIT / IMPORT-REVIEW MODAL
+   ============================================================ */
+const overlay = $('#modalOverlay');
+$('#modalClose').addEventListener('click', closeModal);
+overlay.addEventListener('click', e=>{ if(e.target===overlay) closeModal(); });
+document.addEventListener('keydown', e=>{ if(e.key==='Escape' && overlay.classList.contains('open')) closeModal(); });
+function closeModal(){
+  overlay.classList.remove('open');
+  if(choiceResolver){ const r=choiceResolver; choiceResolver=null; r(null); }   // dismissed without choosing
+}
+
+function openAppModal(uid, isNew){
+  const app = state.apps.find(a=>a.uid===uid);
+  if(!app) return;
+
+  // Lazily backfill for apps that predate suggestions (e.g. imported project files).
+  if(!app.iconSuggestions || !app.iconSuggestions.length){
+    app.iconSuggestions = suggestIconCandidates([app.name,app.description].join(' '));
+    app.autoIcon = app.autoIcon || app.iconSuggestions[0] || DEFAULT_ICON;
+  }
+  if(!app.descCandidates || !app.descCandidates.length){
+    app.descCandidates = buildDescriptionCandidates(app.name, {description:app.description, headings:[], firstParagraph:null});
+    app.descIndex = Math.max(0, app.descCandidates.indexOf(app.description));
+  }
+
+  $('#modalTitle').textContent = isNew ? 'Application added — review details' : 'Edit application';
+
+  // Icon choices: 5-10 relevance-ranked suggestions (the first doubles as "auto"),
+  // plus any detected existing icon, a custom-emoji slot, and an upload slot.
+  const iconOptions = [];
+  app.iconSuggestions.forEach((glyph,i)=>{
+    iconOptions.push({kind: i===0?'auto':'suggested', label: i===0?'Best match':'Suggested', value:glyph});
+  });
+  if(app.detectedIconPath) iconOptions.push({kind:'existing', label:'Detected', value:app.detectedIconPath});
+  iconOptions.push({kind:'custom', label:'Custom'});
+  iconOptions.push({kind:'upload', label:'Upload'});
+
+  $('#modalBody').innerHTML = ''
+    + (isNew ? '<p class="hint" style="margin-top:0;">Detected as <strong>'+ (app.files.length>1?'multi-file application':'single-file application') +'</strong> · entry file <code>'+esc(app.entryPath)+'</code> will become <code>index.html</code>.</p>' : '')
+    + '<div class="grid-2">'
+    +   '<div class="field"><label for="f_name">Application name</label><input type="text" id="f_name" value="'+esc(app.name)+'"></div>'
+    +   '<div class="field"><label for="f_id">Application ID / folder</label><input type="text" id="f_id" value="'+esc(app.id)+'"><p class="hint" id="f_id_hint"></p></div>'
+    + '</div>'
+    + '<div class="field">'
+    +   '<div style="display:flex;align-items:center;justify-content:space-between;">'
+    +     '<label for="f_desc" style="margin-bottom:0;">Short description</label>'
+    +     '<button type="button" id="descRegenBtn" class="btn btn-sm btn-ghost" style="padding:2px 8px;" title="Suggest another description" aria-label="Generate another short description">🔄</button>'
+    +   '</div>'
+    +   '<textarea id="f_desc">'+esc(app.description)+'</textarea>'
+    +   '<p class="hint">Press 🔄 to cycle through auto-suggested descriptions drawn from the app\'s own title, headings and content.</p>'
+    + '</div>'
+    + '<div class="grid-2">'
+    +   '<div class="field"><label for="f_version">Version</label><input type="text" id="f_version" value="'+esc(app.version)+'"></div>'
+    +   '<div class="field"><label for="f_category">Category</label><input type="text" id="f_category" value="'+esc(app.category)+'" list="catList" placeholder="Education, Finance, Utility…"></div>'
+    + '</div>'
+    + '<datalist id="catList">'+Array.from(new Set(state.apps.map(a=>a.category).filter(Boolean))).map(c=>'<option value="'+esc(c)+'">').join('')+'</datalist>'
+    + (app.htmlFiles.length>1
+        ? '<div class="field"><label for="f_entry">Entry HTML file</label><select id="f_entry">'+app.htmlFiles.map(h=>'<option value="'+esc(h)+'" '+(h===app.entryPath?'selected':'')+'>'+esc(h)+'</option>').join('')+'</select><p class="hint">This file becomes index.html when packaged.</p></div>'
+        : '')
+    + '<div class="field"><label>Icon <span class="hint">— '+app.iconSuggestions.length+' suggestions based on this app\'s content</span></label><div class="icon-choice" id="iconChoice">'
+    +   iconOptions.map(o=>{
+          let previewHtml;
+          if(o.kind==='auto' || o.kind==='suggested') previewHtml = esc(o.value);
+          else if(o.kind==='existing') previewHtml = previewForExisting(app, o.value);
+          else if(o.kind==='custom') previewHtml = (app.icon.type==='emoji' && !app.iconSuggestions.includes(app.icon.value)) ? esc(app.icon.value) : '😀';
+          else previewHtml = (app.icon.type==='upload' && app.icon.dataUrl) ? '<img src="'+app.icon.dataUrl+'">' : '📤';
+          const selected = isIconOptSelected(app,o);
+          return '<div class="icon-opt'+(selected?' selected':'')+'" data-kind="'+o.kind+'" data-value="'+esc(o.value||'')+'">'
+            + '<div class="preview">'+previewHtml+'</div><small>'+o.label+'</small></div>';
+        }).join('')
+    + '</div>'
+    + '<div id="iconExtra" style="margin-top:10px;"></div>'
+    + '</div>';
+
+  renderIconExtra(app);
+
+  $all('.icon-opt', $('#modalBody')).forEach(opt=>{
+    opt.addEventListener('click', ()=>{
+      const kind = opt.dataset.kind;
+      delete app._pendingIconType;
+      if(kind==='auto') app.icon = {type:'auto', value:app.autoIcon};
+      else if(kind==='suggested') app.icon = {type:'emoji', value:opt.dataset.value};
+      else if(kind==='existing') app.icon = {type:'existing', value:opt.dataset.value};
+      else if(kind==='custom') app._pendingIconType = 'emoji';
+      else if(kind==='upload') app._pendingIconType = 'upload';
+      $all('.icon-opt',$('#modalBody')).forEach(o=>o.classList.remove('selected'));
+      opt.classList.add('selected');
+      renderIconExtra(app);
+    });
+  });
+
+  function previewForExisting(app,relPath){
+    const f = app.files.find(x=>x.relPath===relPath);
+    if(f && (!f.isText || f.ext==='svg') && f.buffer) return '<img src="'+bufToDataUrl(f.buffer,guessMime(f.ext))+'">';
+    return '🖼️';
+  }
+  function isIconOptSelected(app,o){
+    if(app._pendingIconType) return (o.kind==='custom' && app._pendingIconType==='emoji') || (o.kind==='upload' && app._pendingIconType==='upload');
+    if(o.kind==='auto') return app.icon.type==='auto';
+    if(o.kind==='suggested') return app.icon.type==='emoji' && app.icon.value===o.value;
+    if(o.kind==='existing') return app.icon.type==='existing' && app.icon.value===o.value;
+    if(o.kind==='custom') return app.icon.type==='emoji' && !app.iconSuggestions.includes(app.icon.value);
+    if(o.kind==='upload') return app.icon.type==='upload';
+    return false;
+  }
+
+  $('#descRegenBtn').addEventListener('click', ()=>{
+    if(!app.descCandidates || !app.descCandidates.length) return;
+    app.descIndex = (app.descIndex+1) % app.descCandidates.length;
+    $('#f_desc').value = app.descCandidates[app.descIndex];
+  });
+
+  $('#f_id').addEventListener('input', ()=>{
+    const val = slugify($('#f_id').value);
+    const clash = state.apps.some(a=>a.id===val && a.uid!==app.uid);
+    $('#f_id_hint').textContent = clash ? 'That ID is already used — it will be made unique on save.' : 'Used as the folder name and URL segment.';
+  });
+
+  $('#modalFoot').innerHTML = (isNew?'':'<button class="btn btn-danger" id="modalRemove" type="button">Remove</button>')
+    + '<span style="flex:1;"></span>'
+    + '<button class="btn" id="modalCancel" type="button">Cancel</button>'
+    + '<button class="btn btn-primary" id="modalSave" type="button">'+(isNew?'Add application':'Save changes')+'</button>';
+
+  if(!isNew){
+    $('#modalRemove').addEventListener('click', ()=>{ closeModal(); removeApp(app.uid); });
+  }
+  $('#modalCancel').addEventListener('click', ()=>{
+    if(isNew){ state.apps = state.apps.filter(a=>a.uid!==app.uid); renderAppList(); }
+    closeModal();
+  });
+  $('#modalSave').addEventListener('click', ()=>{
+    app.name = $('#f_name').value.trim() || app.name;
+    let newId = slugify($('#f_id').value.trim() || app.id);
+    app.id = ensureUniqueId(newId, app.uid);
+    app.description = $('#f_desc').value.trim();
+    app.version = $('#f_version').value.trim() || '1.0';
+    app.category = $('#f_category').value.trim();
+    if($('#f_entry')) app.entryPath = $('#f_entry').value;
+
+    if(app._pendingIconType==='emoji'){
+      const val = ($('#emojiInput')||{}).value;
+      app.icon = {type:'emoji', value: (val && val.trim()) ? val.trim() : app.autoIcon};
+    } else if(app._pendingIconType==='upload' && app._pendingIconFile){
+      app.icon = {type:'upload', ext:app._pendingIconFile.ext, buffer:app._pendingIconFile.buffer, dataUrl:app._pendingIconFile.dataUrl};
+    }
+    delete app._pendingIconType; delete app._pendingIconFile;
+
+    closeModal();
+    renderAppList();
+    toast(isNew ? 'Added '+app.name : 'Saved '+app.name);
+  });
+
+  overlay.classList.add('open');
+  $('#f_name').focus();
+}
+
+function renderIconExtra(app){
+  const box = $('#iconExtra');
+  if(!box) return;
+  const type = app._pendingIconType;
+  if(type==='emoji'){
+    box.innerHTML = '<label for="emojiInput" class="hint">Custom emoji or short glyph</label><br>'
+      + '<input type="text" id="emojiInput" value="'+esc(app.icon.type==='emoji'?app.icon.value:'')+'" style="width:80px;text-align:center;font-size:18px;padding:6px;">';
+  } else if(type==='upload'){
+    box.innerHTML = '<label for="uploadIconInput" class="hint">Upload an icon image (PNG/SVG recommended)</label><br>'
+      + '<input type="file" id="uploadIconInput" accept="image/*">';
+    $('#uploadIconInput').addEventListener('change', async e=>{
+      const file = e.target.files[0];
+      if(!file) return;
+      const ext = extOf(file.name);
+      const buffer = await readFileAsArrayBuffer(file);
+      const dataUrl = bufToDataUrl(buffer, guessMime(ext));
+      app._pendingIconFile = {ext, buffer, dataUrl};
+      const opt = $('.icon-opt[data-kind="upload"]', $('#modalBody'));
+      if(opt) $('.preview',opt).innerHTML = '<img src="'+dataUrl+'">';
+    });
+  } else {
+    box.innerHTML = '';
+  }
+}
+
+/* ============================================================
+   LAUNCHER SETTINGS BINDINGS
+   ============================================================ */
+function bindSetting(id, key, kind){
+  const el = $('#'+id);
+  el.addEventListener('input', ()=>{
+    state.settings[key] = kind==='checkbox' ? el.checked : el.value;
+  });
+}
+bindSetting('projectName','projectName');
+bindSetting('launcherTitle','launcherTitle');
+bindSetting('launcherSubtitle','subtitle');
+bindSetting('themeSelect','theme');
+bindSetting('layoutSelect','layout');
+bindSetting('showVersion','showVersion','checkbox');
+bindSetting('showCategory','showCategory','checkbox');
+bindSetting('showDescription','showDescription','checkbox');
+bindSetting('categoryFilterToggle','categoryFilter','checkbox');
+bindSetting('animIntensity','animIntensity');
+$all('input[name=animStyle]').forEach(r=>r.addEventListener('change',()=>{ if(r.checked) state.settings.animStyle=r.value; }));
+$all('input[name=rootFolder]').forEach(r=>r.addEventListener('change',()=>{ if(r.checked) state.settings.rootFolder = r.value==='yes'; }));
+
+// Reads a chosen logo/favicon file. Accepts SVG as well as raster images; rejects anything else.
+async function readBrandingFile(file, kind){
+  const buffer = await readFileAsArrayBuffer(file);
+  const ext = detectImageExt(file, buffer);
+  if(!isImageFile(file, ext)){
+    toast('That file is not an image — choose an SVG, PNG, JPG, GIF, WebP'+(kind==='favicon'?' or ICO':'')+' file.', true);
+    return null;
+  }
+  if(ext==='svg' && !looksLikeSvg(buffer)){
+    toast('That file does not look like a valid SVG (no <svg> element found).', true);
+    return null;
+  }
+  return {name:kind+'.'+ext, ext, buffer, dataUrl:bufToDataUrl(buffer,guessMime(ext)), originalName:file.name};
+}
+$('#logoInput').addEventListener('change', async e=>{
+  const file = e.target.files[0]; if(!file) return;
+  const img = await readBrandingFile(file, 'logo');
+  if(!img){ e.target.value=''; return; }
+  state.settings.logo = img;
+  updateBrandingPreview();
+  toast(img.ext==='svg' ? 'Logo set (SVG)' : 'Logo set');
+});
+$('#faviconInput').addEventListener('change', async e=>{
+  const file = e.target.files[0]; if(!file) return;
+  const img = await readBrandingFile(file, 'favicon');
+  if(!img){ e.target.value=''; return; }
+  state.settings.favicon = img;
+  updateBrandingPreview();
+  toast(img.ext==='svg' ? 'Favicon set (SVG)' : 'Favicon set');
+});
+function updateBrandingPreview(){
+  [['logo','#logoPreview'],['favicon','#faviconPreview']].forEach(([key,sel])=>{
+    const box = $(sel); const v = state.settings[key];
+    box.innerHTML = v && v.dataUrl
+      ? '<img src="'+esc(v.dataUrl)+'" alt=""><span class="fp-name">'+esc(v.originalName || v.name)+'</span>'
+      : '';
+  });
+}
+
+/* ============================================================
+   LAUNCHER GENERATION
+   ============================================================ */
+function buildManifest(){
+  return {
+    applications: state.apps.map(app=>{
+      const entry = {
+        id: app.id, name: app.name, description: app.description,
+        version: app.version||'1.0', category: app.category||'',
+        path: 'apps/'+app.id+'/'
+      };
+      if(app.icon.type==='emoji' || app.icon.type==='auto'){
+        entry.icon = app.icon.type==='emoji' ? app.icon.value : app.autoIcon;
+        entry.iconType = 'emoji';
+      } else if(app.icon.type==='existing'){
+        entry.icon = null; entry.iconType='image';
+        entry.iconPath = 'apps/'+app.id+'/'+app.icon.value;
+      } else if(app.icon.type==='upload'){
+        entry.icon = null; entry.iconType='image';
+        entry.iconPath = 'apps/'+app.id+'/_icon.'+(app.icon.ext||'png');
+      } else {
+        entry.icon = app.autoIcon; entry.iconType='emoji';
+      }
+      return entry;
+    })
+  };
+}
+
+function animParams(){
+  const s = state.settings;
+  const intensityPx = {low:8, medium:16, high:28}[s.animIntensity]||16;
+  const dur = {standard:420, smooth:520, dynamic:620, minimal:260, none:0}[s.animStyle] ?? 420;
+  const stagger = s.animStyle==='none' ? 0 : {low:40,medium:60,high:90}[s.animIntensity]||60;
+  const ease = s.animStyle==='dynamic' ? 'cubic-bezier(.34,1.56,.64,1)' : 'cubic-bezier(.19,1,.22,1)';
+  return {intensityPx,dur,stagger,ease,disabled:s.animStyle==='none'};
+}
+
+function generateLauncherHTML(manifest, opts){
+  opts = opts || {};
+  const s = state.settings;
+  const A = animParams();
+  const embedData = opts.embed ? 'window.__EMBEDDED_APPS__ = '+JSON.stringify(manifest.applications)+';' : '';
+  const faviconTag = s.favicon ? faviconLinkTag(opts.embed?s.favicon.dataUrl:'assets/'+s.favicon.name, s.favicon.ext) : '';
+  const logoImg = s.logo ? '<img class="logo'+(s.logo.ext==='svg'?' logo-svg':'')+'" src="'+(opts.embed?s.logo.dataUrl:'assets/'+s.logo.name)+'" alt="">' : '';
+
+  return '<!DOCTYPE html>'
++'<html lang="en">'
++'<head>'
++'<meta charset="UTF-8">'
++'<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">'
++'<title>'+esc(s.launcherTitle)+'</title>'
++faviconTag
++'<style>'
++':root{--bg:#F7F5F0;--bg2:#FFFFFF;--ink:#1C1E24;--ink-soft:#6B6A5F;--line:#E4E0D2;--accent:#2F6F4E;--accent-soft:#DCEADE;--radius:10px;}'
++'@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#15171C;--bg2:#1D2026;--ink:#EDEAE0;--ink-soft:#9A9788;--line:#2B2E36;--accent:#5FBE8A;--accent-soft:#203029;}}'
++':root[data-theme="dark"]{--bg:#15171C;--bg2:#1D2026;--ink:#EDEAE0;--ink-soft:#9A9788;--line:#2B2E36;--accent:#5FBE8A;--accent-soft:#203029;}'
++'*{box-sizing:border-box;}'
++'html,body{height:100%;margin:0;}'
++'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;background:var(--bg);color:var(--ink);'
++'padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);transition:background .3s ease,color .3s ease;}'
++'a{color:inherit;}'
++'header{padding:52px 24px 28px;text-align:center;max-width:900px;margin:0 auto;}'
++'header .logo{max-height:56px;max-width:100%;margin-bottom:14px;background:transparent;border:0;box-shadow:none;}'
++'header .logo.logo-svg{height:56px;width:auto;}'
++'header h1{font-size:clamp(26px,5vw,40px);margin:0 0 8px;letter-spacing:-.02em;'
++(A.disabled?'':'animation:headIn .7s '+A.ease+' both;')+'}'
++'header p.sub{color:var(--ink-soft);font-size:15px;margin:0;'
++(A.disabled?'':'animation:headIn .7s .08s '+A.ease+' both;')+'}'
++'@keyframes headIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:none;}}'
++'.controls{max-width:960px;margin:0 auto;padding:0 24px 8px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:center;}'
++'.search{flex:1;min-width:220px;max-width:420px;position:relative;}'
++'.search input{width:100%;padding:11px 14px 11px 38px;border-radius:999px;border:1px solid var(--line);background:var(--bg2);color:var(--ink);font-size:14px;}'
++'.search:before{content:"⌕";position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--ink-soft);}'
++'.chips{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;}'
++'.chip{border:1px solid var(--line);background:var(--bg2);color:var(--ink-soft);padding:6px 14px;border-radius:999px;font-size:13px;cursor:pointer;'
++(A.disabled?'':'transition:background .15s ease,color .15s ease,border-color .15s ease;')+'}'
++'.chip.active{background:var(--accent);border-color:var(--accent);color:#fff;}'
++'main{max-width:1080px;margin:0 auto;padding:28px 24px 80px;}'
++'.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:16px;}'
++'.grid.list{grid-template-columns:1fr;}'
++'.card{background:var(--bg2);border:1px solid var(--line);border-radius:var(--radius);padding:18px;text-decoration:none;display:block;color:var(--ink);'
++(A.disabled?'':'transition:transform '+Math.min(A.dur,260)+'ms '+A.ease+', box-shadow '+Math.min(A.dur,260)+'ms ease, border-color .2s ease;')
++(A.disabled?'':'opacity:0;transform:translateY('+A.intensityPx+'px);animation:cardIn '+A.dur+'ms '+A.ease+' forwards;')+'}'
++'@keyframes cardIn{to{opacity:1;transform:none;}}'
++(A.disabled?'':'.card:hover,.card:focus-visible{transform:translateY(-'+Math.round(A.intensityPx*0.4)+'px);box-shadow:0 10px 30px rgba(0,0,0,.12);border-color:var(--accent);}')
++'.card .icon{width:48px;height:48px;border-radius:12px;background:var(--accent-soft);display:flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:14px;overflow:hidden;'
++(A.disabled?'':'transition:transform .2s ease;')+'}'
++(A.disabled?'':'.card:hover .icon{transform:scale(1.08) rotate(-3deg);}')
++'.card .icon img{width:100%;height:100%;object-fit:cover;}'
++'.card h3{margin:0 0 4px;font-size:16px;}'
++'.card p{margin:0 0 10px;font-size:13px;color:var(--ink-soft);line-height:1.5;}'
++'.card .meta{display:flex;gap:8px;font-size:11px;color:var(--ink-soft);}'
++'.card .meta span{border:1px solid var(--line);border-radius:6px;padding:2px 7px;}'
++'.empty{text-align:center;padding:60px 20px;color:var(--ink-soft);'+(A.disabled?'':'animation:headIn .4s ease both;')+'}'
++'.empty .glyph{font-size:34px;display:block;margin-bottom:10px;}'
++'footer{text-align:center;padding:30px 20px 50px;color:var(--ink-soft);font-size:12px;}'
++'@media (prefers-reduced-motion: reduce){*{animation-duration:.001ms !important;transition-duration:.001ms !important;}}'
++':focus-visible{outline:2px solid var(--accent);outline-offset:2px;}'
++'</style>'
++'</head>'
++'<body data-theme="'+(s.theme==='system'?'':s.theme)+'">'
++'<header>'+logoImg+'<h1>'+esc(s.launcherTitle)+'</h1>'+(s.subtitle?'<p class="sub">'+esc(s.subtitle)+'</p>':'')+'</header>'
++'<div class="controls">'
++'<div class="search"><input type="search" id="q" placeholder="Search applications…" aria-label="Search applications"></div>'
++(s.categoryFilter ? '<div class="chips" id="chips" style="display:none;"></div>' : '')
++'</div>'
++'<main><div class="grid '+(s.layout==='list'?'list':'')+'" id="grid" role="list"></div><div class="empty" id="empty" style="display:none;"><span class="glyph">🔎</span>No applications found.</div></main>'
++'<footer>Built with Crate · <span id="appCount">'+manifest.applications.length+' application'+(manifest.applications.length===1?'':'s')+'</span></footer>'
++'<script>'
++embedData
++'const SHOW_VERSION='+(!!s.showVersion)+',SHOW_CATEGORY='+(!!s.showCategory)+',SHOW_DESC='+(!!s.showDescription)+',STAGGER='+A.stagger+';'
++innerLauncherScript()
++'<\/script>'
++'</body></html>';
+}
+
+function innerLauncherScript(){
+  // Static JS that runs inside the generated launcher page. Kept as a template
+  // literal (no backticks/${} used inside) so it needs no quote-escaping.
+  return `
+async function loadApps(){ if(window.__EMBEDDED_APPS__) return window.__EMBEDDED_APPS__; try{ const r=await fetch("apps.json"); const d=await r.json(); return d.applications||[]; }catch(e){ return []; } }
+function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g, function(c){ return ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[c]; }); }
+function iconHtml(a){ if(a.iconType==="image" && a.iconPath) return '<img src="'+a.iconPath+'" alt="">'; return '<span>'+(a.icon||"\\ud83e\\udde9")+'</span>'; }
+function render(apps, q, cat){
+  const grid=document.getElementById("grid"); const empty=document.getElementById("empty");
+  const ql=(q||"").toLowerCase();
+  const filtered = apps.filter(function(a){
+    const hay=[a.name,a.description,a.id,a.category].join(" ").toLowerCase();
+    const okQ=!ql||hay.includes(ql); const okC=!cat||a.category===cat; return okQ&&okC;
+  });
+  grid.innerHTML = filtered.map(function(a,i){
+    return '<a class="card" role="listitem" href="'+a.path+'" style="animation-delay:'+(i*STAGGER)+'ms">'
+      + '<div class="icon">'+iconHtml(a)+'</div><h3>'+esc(a.name)+'</h3>'
+      + (SHOW_DESC && a.description? '<p>'+esc(a.description)+'</p>':'')
+      + '<div class="meta">'+(SHOW_VERSION?'<span>v'+esc(a.version||"1.0")+'</span>':'')+(SHOW_CATEGORY && a.category?'<span>'+esc(a.category)+'</span>':'')+'</div></a>';
+  }).join("");
+  empty.style.display = filtered.length? "none":"block";
+}
+loadApps().then(function(apps){
+  let currentCat="";
+  render(apps,"","");
+  const qEl=document.getElementById("q");
+  qEl.addEventListener("input", function(){ render(apps, qEl.value, currentCat); });
+  const countEl=document.getElementById("appCount");
+  if(countEl) countEl.textContent = apps.length+" application"+(apps.length===1?"":"s");
+  const chips=document.getElementById("chips");
+  if(chips){
+    const cats=[]; apps.forEach(function(a){ if(a.category && cats.indexOf(a.category)===-1) cats.push(a.category); });
+    if(cats.length){
+      chips.innerHTML = '<button class="chip active" data-cat="">All</button>' + cats.map(function(c){ return '<button class="chip" data-cat="'+esc(c)+'">'+esc(c)+'</button>'; }).join("");
+      chips.style.display = "";
+    }
+    chips.addEventListener("click", function(e){
+      const b=e.target.closest(".chip"); if(!b) return;
+      Array.from(chips.children).forEach(function(c){ c.classList.remove("active"); });
+      b.classList.add("active"); currentCat=b.dataset.cat;
+      render(apps, qEl.value, currentCat);
+    });
+  }
+});
+`;
+}
+
+function generateReadme(manifest){
+  const s = state.settings;
+  const list = manifest.applications.map(a=>'- **'+a.name+'** — `'+a.path+'`'+(a.description?(' — '+a.description):'')).join('\n');
+  return '# '+s.projectName+'\n\n'
++ 'A GitHub Pages-ready package containing an animated launcher and '+manifest.applications.length+' independent static web application'+(manifest.applications.length===1?'':'s')+', generated with Crate.\n\n'
++ '## Structure\n\n```\n'
++ (s.rootFolder ? s.projectName+'/\n' : '')
++ 'index.html        # animated launcher (this repo\'s root page)\n'
++ 'apps.json         # launcher manifest\n'
++ 'README.md\n'
++ 'apps/\n'
++ manifest.applications.map(a=>'  '+a.id+'/\n    index.html\n').join('')
++ '```\n\n'
++ '## Applications\n\n' + list + '\n\n'
++ '## Deploy to GitHub Pages\n\n'
++ '1. Extract the ZIP.\n'
++ (s.rootFolder ? '2. Copy the contents of `'+s.projectName+'/` into the root of your GitHub repository.\n' : '2. Copy the extracted files into the root of your GitHub repository.\n')
++ '3. Commit and push.\n'
++ '4. In the repository\'s **Settings → Pages**, enable GitHub Pages for the branch you pushed to.\n'
++ '5. Open the published GitHub Pages URL — `index.html` at the root loads the animated launcher.\n'
++ '6. Select any application from the launcher to open it; each one runs independently from its own folder under `apps/`.\n\n'
++ 'The launcher reads `apps.json` at load time, so adding, removing, or reordering applications later only requires editing that file and the `apps/` folder — no launcher code changes needed. The footer application count and the category filter chips are built from it too, so they stay correct without a rebuild.\n';
+}
+
+/* ============================================================
+   PREVIEW TAB
+   ============================================================ */
+function renderPreview(){
+  const manifest = buildManifest();
+  const html = generateLauncherHTML(manifest, {embed:true});
+  $('#launcherFrame').srcdoc = html;
+  $('#previewUrlLabel').textContent = state.settings.projectName ? '/'+ (state.settings.rootFolder? '' : '') : '/';
+}
+$('#refreshPreviewBtn').addEventListener('click', renderPreview);
+
+/* ============================================================
+   VALIDATION
+   ============================================================ */
+function validateProject(){
+  const errors = [];
+  if(state.apps.length===0) errors.push('Add at least one application before building.');
+  const ids = new Set();
+  state.apps.forEach(app=>{
+    if(!app.name || !app.name.trim()) errors.push('An application is missing a name.');
+    if(!app.id || !app.id.trim()) errors.push('An application is missing an ID.');
+    else if(ids.has(app.id)) errors.push('Duplicate application ID: "'+app.id+'".');
+    ids.add(app.id);
+    if(!app.entryPath) errors.push('Application "'+app.name+'" has no entry HTML file selected.');
+    if(app.icon.type==='upload' && !app.icon.buffer) errors.push('Application "'+app.name+'" has an incomplete icon upload.');
+  });
+  if(!state.settings.projectName || !state.settings.projectName.trim()) errors.push('Project name cannot be empty.');
+  return errors;
+}
+function showValidation(errors){
+  const box = $('#validationErrors');
+  if(errors.length===0){ box.innerHTML=''; return true; }
+  box.innerHTML = '<div class="errlist"><h4>Fix before building</h4><ul>'+errors.map(e=>'<li>'+esc(e)+'</li>').join('')+'</ul></div>';
+  return false;
+}
+$('#validateBtn').addEventListener('click', ()=>{
+  const errors = validateProject();
+  const ok = showValidation(errors);
+  toast(ok ? 'Project looks good — ready to build.' : (errors.length+' issue(s) found.'), !ok);
+});
+
+/* ============================================================
+   BUILD
+   ============================================================ */
+function logLine(msg, cls){
+  const log = $('#buildLog');
+  const line = document.createElement('div');
+  line.className = cls||'step';
+  line.textContent = msg;
+  log.appendChild(line);
+  log.scrollTop = log.scrollHeight;
+}
+function setProgress(pct){
+  const p = $('#buildProgress');
+  p.style.display='block'; p.value=pct;
+}
+function delay(ms){ return new Promise(r=>setTimeout(r,ms)); }
+
+$('#buildBtn').addEventListener('click', runBuild);
+
+async function runBuild(){
+  const errors = validateProject();
+  if(!showValidation(errors)){ toast('Fix the issues listed before building.', true); selectTab('build'); return; }
+
+  const log = $('#buildLog');
+  log.style.display='block'; log.innerHTML='';
+  setProgress(2);
+  $('#buildReport').classList.remove('show');
+  const btn = $('#buildBtn'); btn.disabled = true;
+
+  try{
+    logLine('Preparing project…');
+    await delay(80);
+    logLine('Validating applications…', 'ok');
+    setProgress(8);
+
+    const manifest = buildManifest();
+    const zip = new JSZip();
+    const s = state.settings;
+    const rootName = sanitizePathSegments(slugify(s.projectName)) || 'static-web-apps';
+    const root = s.rootFolder ? zip.folder(s.projectName.trim() || rootName) : zip;
+
+    let totalFiles = 0;
+
+    for(let i=0;i<state.apps.length;i++){
+      const app = state.apps[i];
+      logLine('Analyzing application '+(i+1)+' of '+state.apps.length+': '+app.name+'…');
+      await delay(30);
+      logLine('Selecting icon for '+app.name+'…');
+      await delay(20);
+      setProgress(10 + Math.round((i/state.apps.length)*40));
+
+      const appFolder = root.folder('apps').folder(app.id);
+      app.files.forEach(f=>{
+        const destPath = (f.relPath===app.entryPath) ? 'index.html' : sanitizePathSegments(f.relPath);
+        if(!destPath) return;
+        appFolder.file(destPath, f.isText ? f.text : f.buffer);
+        totalFiles++;
+      });
+      if(app.icon.type==='upload' && app.icon.buffer){
+        appFolder.file('_icon.'+(app.icon.ext||'png'), app.icon.buffer);
+        totalFiles++;
+      }
+      logLine('Packaging application '+(i+1)+' of '+state.apps.length+': '+app.name, 'ok');
+    }
+
+    setProgress(55);
+    logLine('Generating animated launcher…');
+    await delay(60);
+    root.file('index.html', generateLauncherHTML(manifest, {embed:false}));
+    totalFiles++;
+
+    setProgress(65);
+    logLine('Generating apps.json…');
+    root.file('apps.json', JSON.stringify(manifest, null, 2));
+    totalFiles++;
+
+    setProgress(72);
+    logLine('Generating README…');
+    root.file('README.md', generateReadme(manifest));
+    totalFiles++;
+
+    if(s.favicon){ root.folder('assets').file(s.favicon.name, s.favicon.buffer); totalFiles++; }
+    if(s.logo){ root.folder('assets').file(s.logo.name, s.logo.buffer); totalFiles++; }
+
+    setProgress(80);
+    logLine('Creating ZIP…');
+    const blob = await zip.generateAsync({type:'blob', compression:'DEFLATE', compressionOptions:{level:6}}, meta=>{
+      setProgress(80 + Math.round(meta.percent*0.19));
+    });
+
+    setProgress(100);
+    logLine('Build complete.', 'ok');
+
+    state.lastZipBlob = blob;
+    state.lastZipStats = {apps: state.apps.length, files: totalFiles, size: blob.size};
+    showBuildReport(manifest);
+    toast('ZIP ready — '+bytesToSize(blob.size));
+  }catch(err){
+    logLine('Build failed: '+(err && err.message ? err.message : err), 'err');
+    toast('Build failed — see log for details.', true);
+    console.error(err);
+  }finally{
+    btn.disabled = false;
+  }
+}
+
+function showBuildReport(manifest){
+  $('#statApps').textContent = state.apps.length;
+  $('#statFiles').textContent = state.lastZipStats.files;
+  $('#statSize').textContent = bytesToSize(state.lastZipStats.size);
+  const s = state.settings;
+  const rootPrefix = s.rootFolder ? (s.projectName.trim()||'project')+'/' : '';
+  let tree = rootPrefix+'\n'
+    + '├── index.html\n├── apps.json\n├── README.md\n└── apps/\n';
+  state.apps.forEach((app,i)=>{
+    const last = i===state.apps.length-1;
+    tree += '    '+(last?'└── ':'├── ')+app.id+'/\n';
+    tree += '    '+(last?'    ':'│   ')+'└── index.html'+(app.files.length>1?'  (+'+(app.files.length-1)+' more)':'')+'\n';
+  });
+  $('#buildTree').textContent = tree;
+  $('#buildReport').classList.add('show');
+}
+
+$('#downloadZipBtn').addEventListener('click', ()=>{
+  if(!state.lastZipBlob){ toast('Build the ZIP first.', true); return; }
+  const a = document.createElement('a');
+  const name = (state.settings.projectName.trim()||'static-web-apps').replace(/[^a-z0-9\-_. ]/gi,'_');
+  a.href = URL.createObjectURL(state.lastZipBlob);
+  a.download = name+'.zip';
+  document.body.appendChild(a); a.click(); a.remove();
+});
+
+/* ============================================================
+   SINGLE HTML BUILD
+   ============================================================
+   Packages the whole project — launcher + every application file —
+   into one self-contained HTML file suitable for GitHub Pages.
+   Uses the SAME state.apps / state.settings data model as the ZIP
+   build (buildManifest / generateLauncherHTML); nothing here alters
+   that path. See crateSingleHtmlRuntime() below for the embedded
+   runtime that ships inside the generated file.
+   ============================================================ */
+
+/* ---- gather each app's files into the embeddable payload shape ---- */
+function buildSingleHtmlAppFiles(app){
+  return app.files.map(f=>{
+    const rec = {path: f.relPath, ext: f.ext};
+    if(f.isText){ rec.isText = true; rec.text = f.text; }
+    else { rec.isText = false; rec.b64 = bufferToBase64(f.buffer); }
+    return rec;
+  });
+}
+
+/* ---- detect whether an app tries to register a Service Worker,
+   so Single HTML mode can warn instead of silently breaking it ---- */
+function detectServiceWorker(app){
+  const swFileRe = /(^|\/)(sw|service-worker)\.js$/i;
+  const hasSwFile = app.files.some(f=>swFileRe.test(f.relPath));
+  const hasRegisterCall = app.files.some(f=>
+    f.isText && (f.ext==='html'||f.ext==='htm'||f.ext==='js'||f.ext==='mjs') && /serviceWorker\.register/.test(f.text)
+  );
+  return hasSwFile || hasRegisterCall;
+}
+
+/* ---- resolve an app's icon to something the embedded payload can
+   carry directly (an emoji, or a data URL for an image) ---- */
+function iconForSingleHtml(app){
+  if(app.icon.type==='existing'){
+    const f = app.files.find(x=>x.relPath===app.icon.value);
+    if(f && f.buffer) return {iconType:'image', iconDataUrl: bufToDataUrl(f.buffer, guessMime(f.ext))};
+  }
+  if(app.icon.type==='upload' && app.icon.buffer){
+    return {iconType:'image', iconDataUrl: bufToDataUrl(app.icon.buffer, guessMime(app.icon.ext||'png'))};
+  }
+  if(app.icon.type==='emoji') return {iconType:'emoji', icon: app.icon.value};
+  return {iconType:'emoji', icon: app.autoIcon};
+}
+
+function jsonForScriptTag(obj){
+  // Safe to embed inside <script type="application/json">: JSON allows an
+  // escaped forward slash, so this can never prematurely close the tag.
+  return JSON.stringify(obj).replace(/<\//g, '<\\/');
+}
+
+function buildSingleHtmlPayload(){
+  const s = state.settings;
+  const warnings = [];
+  const applications = state.apps.map(app=>{
+    const hasSW = detectServiceWorker(app);
+    if(hasSW){
+      const swFile = app.files.find(f=>/(^|\/)(sw|service-worker)\.js$/i.test(f.relPath));
+      warnings.push({
+        app: app.name,
+        file: swFile ? swFile.relPath : app.entryPath,
+        reason: 'Service Worker registration cannot run from a bundled single-file application.',
+        impact: 'The application keeps working; offline caching / installability from its Service Worker is unavailable in Single HTML mode.'
+      });
+    }
+    const iconInfo = iconForSingleHtml(app);
+    return Object.assign({
+      id: app.id, name: app.name, description: app.description, version: app.version||'1.0', category: app.category||'',
+      entryPath: app.entryPath, hasServiceWorker: hasSW, files: buildSingleHtmlAppFiles(app)
+    }, iconInfo);
+  });
+  const payload = {
+    settings: {
+      projectName: s.projectName, launcherTitle: s.launcherTitle, subtitle: s.subtitle||'',
+      theme: s.theme, layout: s.layout, showVersion: !!s.showVersion, showCategory: !!s.showCategory,
+      showDescription: !!s.showDescription, categoryFilter: !!s.categoryFilter
+    },
+    applications
+  };
+  return {payload, warnings};
+}
+
+/* ---- CSS for the generated launcher page (mirrors generateLauncherHTML's
+   embedded styling, plus the full-screen app overlay) ---- */
+function singleHtmlCss(A){
+  return ':root{--bg:#F7F5F0;--bg2:#FFFFFF;--ink:#1C1E24;--ink-soft:#6B6A5F;--line:#E4E0D2;--accent:#2F6F4E;--accent-soft:#DCEADE;--radius:10px;}'
++'@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#15171C;--bg2:#1D2026;--ink:#EDEAE0;--ink-soft:#9A9788;--line:#2B2E36;--accent:#5FBE8A;--accent-soft:#203029;}}'
++':root[data-theme="dark"]{--bg:#15171C;--bg2:#1D2026;--ink:#EDEAE0;--ink-soft:#9A9788;--line:#2B2E36;--accent:#5FBE8A;--accent-soft:#203029;}'
++'*{box-sizing:border-box;}'
++'html,body{height:100%;margin:0;}'
++'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;background:var(--bg);color:var(--ink);'
++'padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);transition:background .3s ease,color .3s ease;}'
++'a{color:inherit;}'
++'header{padding:52px 24px 28px;text-align:center;max-width:900px;margin:0 auto;}'
++'header .logo{max-height:56px;max-width:100%;margin-bottom:14px;background:transparent;border:0;box-shadow:none;}'
++'header .logo.logo-svg{height:56px;width:auto;}'
++'header h1{font-size:clamp(26px,5vw,40px);margin:0 0 8px;letter-spacing:-.02em;'
++(A.disabled?'':'animation:headIn .7s '+A.ease+' both;')+'}'
++'header p.sub{color:var(--ink-soft);font-size:15px;margin:0;'
++(A.disabled?'':'animation:headIn .7s .08s '+A.ease+' both;')+'}'
++'@keyframes headIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:none;}}'
++'.controls{max-width:960px;margin:0 auto;padding:0 24px 8px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:center;}'
++'.search{flex:1;min-width:220px;max-width:420px;position:relative;}'
++'.search input{width:100%;padding:11px 14px 11px 38px;border-radius:999px;border:1px solid var(--line);background:var(--bg2);color:var(--ink);font-size:14px;}'
++'.search:before{content:"⌕";position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--ink-soft);}'
++'.chips{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;}'
++'.chip{border:1px solid var(--line);background:var(--bg2);color:var(--ink-soft);padding:6px 14px;border-radius:999px;font-size:13px;cursor:pointer;'
++(A.disabled?'':'transition:background .15s ease,color .15s ease,border-color .15s ease;')+'}'
++'.chip.active{background:var(--accent);border-color:var(--accent);color:#fff;}'
++'main{max-width:1080px;margin:0 auto;padding:28px 24px 80px;}'
++'.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:16px;}'
++'.grid.list{grid-template-columns:1fr;}'
++'.card{background:var(--bg2);border:1px solid var(--line);border-radius:var(--radius);padding:18px;text-decoration:none;display:block;color:var(--ink);cursor:pointer;'
++(A.disabled?'':'transition:transform '+Math.min(A.dur,260)+'ms '+A.ease+', box-shadow '+Math.min(A.dur,260)+'ms ease, border-color .2s ease;')
++(A.disabled?'':'opacity:0;transform:translateY('+A.intensityPx+'px);animation:cardIn '+A.dur+'ms '+A.ease+' forwards;')+'}'
++'@keyframes cardIn{to{opacity:1;transform:none;}}'
++(A.disabled?'':'.card:hover,.card:focus-visible{transform:translateY(-'+Math.round(A.intensityPx*0.4)+'px);box-shadow:0 10px 30px rgba(0,0,0,.12);border-color:var(--accent);}')
++'.card .icon{width:48px;height:48px;border-radius:12px;background:var(--accent-soft);display:flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:14px;overflow:hidden;'
++(A.disabled?'':'transition:transform .2s ease;')+'}'
++(A.disabled?'':'.card:hover .icon{transform:scale(1.08) rotate(-3deg);}')
++'.card .icon img{width:100%;height:100%;object-fit:cover;}'
++'.card h3{margin:0 0 4px;font-size:16px;}'
++'.card p{margin:0 0 10px;font-size:13px;color:var(--ink-soft);line-height:1.5;}'
++'.card .meta{display:flex;gap:8px;font-size:11px;color:var(--ink-soft);}'
++'.card .meta span{border:1px solid var(--line);border-radius:6px;padding:2px 7px;}'
++'.empty{text-align:center;padding:60px 20px;color:var(--ink-soft);'+(A.disabled?'':'animation:headIn .4s ease both;')+'}'
++'.empty .glyph{font-size:34px;display:block;margin-bottom:10px;}'
++'footer{text-align:center;padding:30px 20px 50px;color:var(--ink-soft);font-size:12px;}'
++'@media (prefers-reduced-motion: reduce){*{animation-duration:.001ms !important;transition-duration:.001ms !important;}}'
++':focus-visible{outline:2px solid var(--accent);outline-offset:2px;}'
++'.crate-overlay{display:none;position:fixed;inset:0;z-index:1000;background:var(--bg);flex-direction:column;}'
++'.crate-overlay-bar{display:flex;align-items:center;gap:12px;padding:calc(10px + env(safe-area-inset-top,0px)) 16px 10px;background:var(--bg2);border-bottom:1px solid var(--line);flex:0 0 auto;}'
++'.crate-overlay-bar button{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:8px;padding:7px 12px;font-size:13px;cursor:pointer;}'
++'.crate-overlay-bar button:hover{border-color:var(--accent);color:var(--accent);}'
++'.crate-overlay-bar span{font-size:13px;color:var(--ink-soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}'
++'.crate-app-frame{flex:1 1 auto;width:100%;border:0;background:#fff;}';
+}
+
+/* ============================================================
+   crateSingleHtmlRuntime — THE EMBEDDED RUNTIME
+   ------------------------------------------------------------
+   This function is never called here in the Builder. Its source
+   is captured with .toString() and written verbatim into the
+   generated single HTML file, where it runs as the launcher +
+   application runtime. It must therefore be fully self-contained
+   — it cannot reference anything from the Builder's own scope
+   (state, esc, guessMime, etc.) — only browser globals.
+
+   What it does, at a glance:
+   - Reads the embedded project JSON from #crate-single-payload.
+   - Renders the same card-grid launcher as the normal build.
+   - On click, lazily builds a per-application virtual filesystem:
+       binary/text files -> Blob URLs
+       CSS files          -> rewritten (url()/@import -> Blob URLs), then blobbed
+       the entry HTML     -> rewritten (href/src/manifest/style -> Blob URLs),
+                             a small runtime shim injected, then blobbed
+     and opens that Blob URL in an iframe overlay (never srcdoc).
+   - The injected shim (crateAppShim) patches fetch()/XHR so relative
+     paths an application requests at runtime also resolve against
+     the same virtual filesystem, stubs out ServiceWorker registration
+     (real SW scripts cannot run from a Blob-URL document) with a
+     console warning instead of letting it throw, and namespaces
+     localStorage per application so bundled apps do not collide.
+   ============================================================ */
+function crateSingleHtmlRuntime(){
+  "use strict";
+  var payloadEl = document.getElementById('crate-single-payload');
+  var PROJECT = {settings:{}, applications:[]};
+  try{ PROJECT = JSON.parse(payloadEl.textContent); }catch(e){ console.error('Crate: could not parse embedded project data', e); }
+  var APPS = PROJECT.applications || [];
+  var SETTINGS = PROJECT.settings || {};
+  var appCache = {};
+
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]; }); }
+
+  function guessMimeRT(ext){
+    var m = {html:'text/html',htm:'text/html',css:'text/css',js:'text/javascript',mjs:'text/javascript',json:'application/json',svg:'image/svg+xml',txt:'text/plain',md:'text/markdown',xml:'application/xml',csv:'text/csv',webmanifest:'application/manifest+json',png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',gif:'image/gif',webp:'image/webp',ico:'image/x-icon',bmp:'image/bmp',avif:'image/avif',woff:'font/woff',woff2:'font/woff2',ttf:'font/ttf',otf:'font/otf',pdf:'application/pdf'};
+    return m[ext] || 'application/octet-stream';
+  }
+  function b64ToBlob(b64, mime){
+    var bin = atob(b64), len = bin.length, bytes = new Uint8Array(len);
+    for(var i=0;i<len;i++) bytes[i] = bin.charCodeAt(i);
+    return new Blob([bytes], {type:mime});
+  }
+  function textToBlob(text, mime){ return new Blob([text], {type:mime}); }
+
+  function resolveLocal(fromPath, ref, filesByPath){
+    if(!ref) return null;
+    ref = ref.split('#')[0].split('?')[0].trim();
+    if(!ref) return null;
+    if(/^[a-z][a-z0-9+.-]*:/i.test(ref) || ref.indexOf('//')===0) return null;
+    var parts = ref.charAt(0)==='/' ? ref.split('/') : fromPath.split('/').slice(0,-1).concat(ref.split('/'));
+    var out = [];
+    for(var i=0;i<parts.length;i++){
+      var p = parts[i];
+      if(!p || p==='.') continue;
+      if(p==='..'){ if(out.length) out.pop(); } else out.push(p);
+    }
+    var joined = out.join('/').toLowerCase();
+    return Object.prototype.hasOwnProperty.call(filesByPath, joined) ? joined : null;
+  }
+
+  /* Injected as the first script in each app's entry document. Kept as
+     a plain function so its .toString() needs no manual escaping. */
+  function crateAppShim(){
+    var VFS = window.__CRATE_VFS__ || {};
+    var APP_ID = window.__CRATE_APP_ID__ || 'app';
+    function resolveKey(u){
+      try{ if(/^[a-z][a-z0-9+.-]*:/i.test(u)) return null; }catch(e){}
+      var c = String(u).split('#')[0].split('?')[0];
+      if(c.charAt(0)==='/') c = c.slice(1);
+      c = c.replace(/^\.\//, '');
+      var k = c.toLowerCase();
+      return Object.prototype.hasOwnProperty.call(VFS, k) ? VFS[k] : null;
+    }
+    var _fetch = window.fetch;
+    if(_fetch){
+      window.fetch = function(input, init){
+        try{
+          var url = typeof input === 'string' ? input : (input && input.url);
+          if(url){ var m = resolveKey(url); if(m) return _fetch(m, init); }
+        }catch(e){}
+        return _fetch(input, init);
+      };
+    }
+    var _open = XMLHttpRequest.prototype.open;
+    XMLHttpRequest.prototype.open = function(method, url){
+      try{ var m = resolveKey(url); if(m){ arguments[1] = m; } }catch(e){}
+      return _open.apply(this, arguments);
+    };
+    if(navigator.serviceWorker){
+      navigator.serviceWorker.register = function(){
+        console.warn('[Crate] Service Worker registration is disabled in single-file mode; the app continues without offline/SW support.');
+        return Promise.resolve({scope: location.href, unregister: function(){ return Promise.resolve(true); }, addEventListener: function(){}, installing:null, waiting:null, active:null});
+      };
+    }
+    try{
+      var PREFIX = '__crate_' + APP_ID + '__';
+      var realLS = window.localStorage;
+      var proxyLS = {
+        getItem: function(k){ return realLS.getItem(PREFIX+k); },
+        setItem: function(k,v){ return realLS.setItem(PREFIX+k, v); },
+        removeItem: function(k){ return realLS.removeItem(PREFIX+k); },
+        clear: function(){
+          var ks = [];
+          for(var i=0;i<realLS.length;i++){ var k = realLS.key(i); if(k && k.indexOf(PREFIX)===0) ks.push(k); }
+          for(var j=0;j<ks.length;j++) realLS.removeItem(ks[j]);
+        },
+        key: function(idx){
+          var ks = [];
+          for(var i=0;i<realLS.length;i++){ var k = realLS.key(i); if(k && k.indexOf(PREFIX)===0) ks.push(k.slice(PREFIX.length)); }
+          return ks[idx] || null;
+        }
+      };
+      Object.defineProperty(proxyLS, 'length', { get: function(){
+        var n = 0;
+        for(var i=0;i<realLS.length;i++){ var k = realLS.key(i); if(k && k.indexOf(PREFIX)===0) n++; }
+        return n;
+      }});
+      Object.defineProperty(window, 'localStorage', { get: function(){ return proxyLS; }, configurable: true });
+    }catch(e){}
+  }
+
+  function buildApp(app){
+    if(appCache[app.id]) return appCache[app.id];
+    var filesByPath = {};
+    app.files.forEach(function(f){ filesByPath[f.path.toLowerCase()] = f; });
+    var blobUrlByPath = {};
+    function mimeFor(f){ return guessMimeRT(f.ext); }
+
+    function getBlobUrlFor(path){
+      var key = path.toLowerCase();
+      if(blobUrlByPath[key]) return blobUrlByPath[key];
+      var f = filesByPath[key];
+      if(!f) return null;
+      var url;
+      if(f.ext==='css'){ url = URL.createObjectURL(textToBlob(rewriteCss(f), 'text/css')); }
+      else if(f.ext==='html' || f.ext==='htm'){ url = URL.createObjectURL(textToBlob(rewriteHtmlAssets(f,false), 'text/html')); }
+      else if(f.isText){ url = URL.createObjectURL(textToBlob(f.text, mimeFor(f))); }
+      else { url = URL.createObjectURL(b64ToBlob(f.b64, mimeFor(f))); }
+      blobUrlByPath[key] = url;
+      return url;
+    }
+
+    function rewriteCss(f){
+      var text = f.text;
+      text = text.replace(/url\(\s*(['"]?)([^'")]+)\1\s*\)/gi, function(m, q, ref){
+        var resolved = resolveLocal(f.path, ref, filesByPath);
+        if(resolved===null) return m;
+        var bu = getBlobUrlFor(resolved);
+        return bu ? 'url(' + q + bu + q + ')' : m;
+      });
+      text = text.replace(/@import\s+(?:url\()?['"]([^'"]+)['"]\)?/gi, function(m, ref){
+        var resolved = resolveLocal(f.path, ref, filesByPath);
+        if(resolved===null) return m;
+        var bu = getBlobUrlFor(resolved);
+        return bu ? '@import url("' + bu + '")' : m;
+      });
+      return text;
+    }
+
+    function buildManifestBlob(mf){
+      try{
+        var json = JSON.parse(mf.text);
+        if(json.icons){
+          json.icons.forEach(function(ic){
+            var resolved = resolveLocal(mf.path, ic.src, filesByPath);
+            if(resolved!==null){ var bu = getBlobUrlFor(resolved); if(bu) ic.src = bu; }
+          });
+        }
+        delete json.start_url;
+        var url = URL.createObjectURL(textToBlob(JSON.stringify(json), 'application/manifest+json'));
+        blobUrlByPath[mf.path.toLowerCase()] = url;
+        return url;
+      }catch(e){ return null; }
+    }
+
+    function rewriteHtmlAssets(f, isEntry){
+      var doc;
+      try{ doc = new DOMParser().parseFromString(f.text, 'text/html'); }catch(e){ return f.text; }
+      var attrTags = [['link','href'],['script','src'],['img','src'],['source','src'],['audio','src'],['video','src'],['embed','src'],['track','src'],['use','href']];
+      attrTags.forEach(function(pair){
+        var tag = pair[0], attr = pair[1];
+        var els = doc.querySelectorAll(tag + '[' + attr + ']');
+        for(var i=0;i<els.length;i++){
+          var el = els[i];
+          if(tag==='link'){
+            var rel = (el.getAttribute('rel')||'').toLowerCase();
+            if(rel==='manifest'){
+              var mref = el.getAttribute(attr);
+              var mresolved = resolveLocal(f.path, mref, filesByPath);
+              if(mresolved!==null){
+                var mf = filesByPath[mresolved];
+                var manifestUrl = mf ? buildManifestBlob(mf) : null;
+                if(manifestUrl) el.setAttribute(attr, manifestUrl);
+              }
+              continue;
+            }
+            if(rel.indexOf('stylesheet')===-1 && rel.indexOf('icon')===-1) continue;
+          }
+          var ref2 = el.getAttribute(attr);
+          var resolved2 = resolveLocal(f.path, ref2, filesByPath);
+          if(resolved2===null) continue;
+          var bu = getBlobUrlFor(resolved2);
+          if(bu) el.setAttribute(attr, bu);
+        }
+      });
+      var styledEls = doc.querySelectorAll('[style]');
+      for(var s2=0; s2<styledEls.length; s2++){
+        var el2 = styledEls[s2];
+        var st = el2.getAttribute('style');
+        var nst = st.replace(/url\(\s*(['"]?)([^'")]+)\1\s*\)/gi, function(m,q,ref){
+          var resolved = resolveLocal(f.path, ref, filesByPath);
+          if(resolved===null) return m;
+          var bu = getBlobUrlFor(resolved);
+          return bu ? 'url(' + q + bu + q + ')' : m;
+        });
+        el2.setAttribute('style', nst);
+      }
+      var styleTags = doc.querySelectorAll('style');
+      for(var t=0;t<styleTags.length;t++){
+        styleTags[t].textContent = styleTags[t].textContent.replace(/url\(\s*(['"]?)([^'")]+)\1\s*\)/gi, function(m,q,ref){
+          var resolved = resolveLocal(f.path, ref, filesByPath);
+          if(resolved===null) return m;
+          var bu = getBlobUrlFor(resolved);
+          return bu ? 'url(' + q + bu + q + ')' : m;
+        });
+      }
+      if(isEntry){
+        var anchors = doc.querySelectorAll('a[href]');
+        for(var a2=0; a2<anchors.length; a2++){
+          var aEl = anchors[a2];
+          var aRef = aEl.getAttribute('href');
+          var aResolved = resolveLocal(f.path, aRef, filesByPath);
+          if(aResolved===null) continue;
+          var abu = getBlobUrlFor(aResolved);
+          if(abu) aEl.setAttribute('href', abu);
+        }
+        var vfsMap = {};
+        for(var key in blobUrlByPath){ if(Object.prototype.hasOwnProperty.call(blobUrlByPath, key)) vfsMap[key] = blobUrlByPath[key]; }
+        var shimScript = doc.createElement('script');
+        shimScript.textContent = 'window.__CRATE_VFS__=' + JSON.stringify(vfsMap).replace(/</g,'\u003c') + ';window.__CRATE_APP_ID__=' + JSON.stringify(app.id) + ';(' + crateAppShim.toString() + ')();';
+        if(doc.head.firstChild) doc.head.insertBefore(shimScript, doc.head.firstChild); else doc.head.appendChild(shimScript);
+      }
+      return '<!DOCTYPE html>\n' + doc.documentElement.outerHTML;
+    }
+
+    Object.keys(filesByPath).forEach(function(key){
+      if(key === app.entryPath.toLowerCase()) return;
+      getBlobUrlFor(key);
+    });
+
+    var entryFile = filesByPath[app.entryPath.toLowerCase()];
+    var entryUrl = entryFile ? URL.createObjectURL(textToBlob(rewriteHtmlAssets(entryFile, true), 'text/html')) : null;
+
+    var result = {entryUrl: entryUrl};
+    appCache[app.id] = result;
+    return result;
+  }
+
+  var grid = document.getElementById('grid');
+  var empty = document.getElementById('empty');
+  var qEl = document.getElementById('q');
+  var chips = document.getElementById('chips');
+  var countEl = document.getElementById('appCount');
+  var overlay = document.getElementById('crateOverlay');
+  var frame = document.getElementById('crateAppFrame');
+  var overlayTitle = document.getElementById('crateOverlayTitle');
+  var backBtn = document.getElementById('crateBackBtn');
+  var currentCat = '';
+
+  function iconHtml(a){
+    if(a.iconType==='image' && a.iconDataUrl) return '<img src="' + a.iconDataUrl + '" alt="">';
+    return '<span>' + esc(a.icon || '\ud83e\udde9') + '</span>';
+  }
+  function render(q, cat){
+    var ql = (q||'').toLowerCase();
+    var filtered = APPS.filter(function(a){
+      var hay = [a.name, a.description, a.id, a.category].join(' ').toLowerCase();
+      var okQ = !ql || hay.indexOf(ql)!==-1;
+      var okC = !cat || a.category===cat;
+      return okQ && okC;
+    });
+    grid.innerHTML = filtered.map(function(a, i){
+      return '<a class="card" href="#" role="listitem" data-app="' + esc(a.id) + '" style="animation-delay:' + (i*(SETTINGS.staggerMs||0)) + 'ms">'
+        + '<div class="icon">' + iconHtml(a) + '</div><h3>' + esc(a.name) + '</h3>'
+        + (SETTINGS.showDescription && a.description ? '<p>' + esc(a.description) + '</p>' : '')
+        + '<div class="meta">' + (SETTINGS.showVersion ? '<span>v' + esc(a.version||'1.0') + '</span>' : '') + (SETTINGS.showCategory && a.category ? '<span>' + esc(a.category) + '</span>' : '') + '</div></a>';
+    }).join('');
+    empty.style.display = filtered.length ? 'none' : 'block';
+    Array.prototype.forEach.call(grid.querySelectorAll('.card'), function(card){
+      card.addEventListener('click', function(e){
+        e.preventDefault();
+        openApp(card.getAttribute('data-app'));
+      });
+    });
+  }
+
+  function openApp(appId){
+    var app = null;
+    for(var i=0;i<APPS.length;i++){ if(APPS[i].id===appId){ app = APPS[i]; break; } }
+    if(!app) return;
+    var built;
+    try{ built = buildApp(app); }catch(e){ console.error('Crate: failed to prepare application', app.id, e); return; }
+    if(!built.entryUrl){ console.error('Crate: application has no usable entry file', app.id); return; }
+    overlayTitle.textContent = app.name;
+    frame.src = built.entryUrl;
+    overlay.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+    if(history.pushState) history.pushState({crateApp:appId}, '', '#app=' + encodeURIComponent(appId));
+  }
+  function closeApp(){
+    overlay.style.display = 'none';
+    frame.src = 'about:blank';
+    document.body.style.overflow = '';
+    if(history.pushState) history.pushState({}, '', location.pathname + location.search);
+  }
+  if(backBtn) backBtn.addEventListener('click', closeApp);
+  window.addEventListener('popstate', function(){
+    if(overlay && overlay.style.display !== 'none') closeApp();
+  });
+
+  render('', '');
+  if(qEl) qEl.addEventListener('input', function(){ render(qEl.value, currentCat); });
+  if(countEl) countEl.textContent = APPS.length + ' application' + (APPS.length===1 ? '' : 's');
+  if(chips && SETTINGS.categoryFilter){
+    var cats = [];
+    APPS.forEach(function(a){ if(a.category && cats.indexOf(a.category)===-1) cats.push(a.category); });
+    if(cats.length>1){
+      chips.style.display = 'flex';
+      chips.innerHTML = '<button type="button" class="chip active" data-cat="">All</button>' + cats.map(function(c){ return '<button type="button" class="chip" data-cat="' + esc(c) + '">' + esc(c) + '</button>'; }).join('');
+      chips.addEventListener('click', function(e){
+        var b = e.target.closest('.chip');
+        if(!b) return;
+        Array.prototype.forEach.call(chips.children, function(c){ c.classList.remove('active'); });
+        b.classList.add('active');
+        currentCat = b.getAttribute('data-cat');
+        render(qEl ? qEl.value : '', currentCat);
+      });
+    }
+  }
+  var initialHash = /^#app=(.+)$/.exec(location.hash);
+  if(initialHash){
+    var initialId = decodeURIComponent(initialHash[1]);
+    if(APPS.some(function(a){ return a.id===initialId; })) openApp(initialId);
+  }
+}
+
+function generateSingleHtmlDocument(payload){
+  const s = state.settings;
+  const A = animParams();
+  payload.settings.staggerMs = A.stagger;
+  const faviconTag = s.favicon ? faviconLinkTag(s.favicon.dataUrl, s.favicon.ext) : '';
+  const logoImg = s.logo ? '<img class="logo'+(s.logo.ext==='svg'?' logo-svg':'')+'" src="'+s.logo.dataUrl+'" alt="">' : '';
+  const payloadJson = jsonForScriptTag(payload);
+
+  return '<!DOCTYPE html>'
++'<html lang="en">'
++'<head>'
++'<meta charset="UTF-8">'
++'<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">'
++'<title>'+esc(s.launcherTitle)+'</title>'
++faviconTag
++'<style>'
++singleHtmlCss(A)
++'</style>'
++'</head>'
++'<body data-theme="'+(s.theme==='system'?'':s.theme)+'">'
++'<header>'+logoImg+'<h1>'+esc(s.launcherTitle)+'</h1>'+(s.subtitle?'<p class="sub">'+esc(s.subtitle)+'</p>':'')+'</header>'
++'<div class="controls">'
++'<div class="search"><input type="search" id="q" placeholder="Search applications…" aria-label="Search applications"></div>'
++(s.categoryFilter ? '<div class="chips" id="chips" style="display:none;"></div>' : '')
++'</div>'
++'<main><div class="grid '+(s.layout==='list'?'list':'')+'" id="grid" role="list"></div><div class="empty" id="empty" style="display:none;"><span class="glyph">🔎</span>No applications found.</div></main>'
++'<footer>Built with Crate · <span id="appCount">'+payload.applications.length+' application'+(payload.applications.length===1?'':'s')+'</span></footer>'
++'<div id="crateOverlay" class="crate-overlay"><div class="crate-overlay-bar"><button id="crateBackBtn" type="button">&larr; Back to launcher</button><span id="crateOverlayTitle"></span></div><iframe id="crateAppFrame" class="crate-app-frame" title="Application" sandbox="allow-scripts allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-downloads allow-same-origin"></iframe></div>'
++'<script type="application/json" id="crate-single-payload">'+payloadJson+'<\/script>'
++'<script>('+crateSingleHtmlRuntime.toString()+')();<\/script>'
++'</body></html>';
+}
+
+$('#buildSingleBtn').addEventListener('click', runBuildSingleHtml);
+
+async function runBuildSingleHtml(){
+  const errors = validateProject();
+  if(!showValidation(errors)){ toast('Fix the issues listed before building.', true); selectTab('build'); return; }
+
+  const log = $('#buildLog');
+  log.style.display='block'; log.innerHTML='';
+  setProgress(2);
+  $('#singleHtmlReport').classList.remove('show');
+  const btn = $('#buildSingleBtn'); btn.disabled = true;
+
+  try{
+    logLine('Preparing single-file build…');
+    await delay(70);
+    logLine('Validating applications…', 'ok');
+    setProgress(10);
+
+    const {payload, warnings} = buildSingleHtmlPayload();
+    setProgress(35);
+    logLine('Embedding '+state.apps.length+' application'+(state.apps.length===1?'':'s')+'…');
+    await delay(70);
+
+    warnings.forEach(w=> logLine('Warning — '+w.app+' ('+w.file+'): '+w.reason, 'err'));
+
+    setProgress(60);
+    logLine('Generating self-contained launcher…');
+    await delay(70);
+    const html = generateSingleHtmlDocument(payload);
+
+    setProgress(90);
+    const blob = new Blob([html], {type:'text/html'});
+    const totalFiles = payload.applications.reduce((n,a)=>n+a.files.length,0);
+
+    setProgress(100);
+    logLine('Single HTML build complete.', 'ok');
+
+    state.lastSingleHtmlBlob = blob;
+    state.lastSingleHtmlStats = {apps: state.apps.length, files: totalFiles, size: blob.size, warnings};
+    showSingleHtmlReport();
+    toast('Single HTML ready — '+bytesToSize(blob.size));
+  }catch(err){
+    logLine('Single HTML build failed: '+(err && err.message ? err.message : err), 'err');
+    toast('Single HTML build failed — see log for details.', true);
+    console.error(err);
+  }finally{
+    btn.disabled = false;
+  }
+}
+
+function showSingleHtmlReport(){
+  $('#singleStatApps').textContent = state.apps.length;
+  $('#singleStatFiles').textContent = state.lastSingleHtmlStats.files;
+  $('#singleStatSize').textContent = bytesToSize(state.lastSingleHtmlStats.size);
+  const warnings = state.lastSingleHtmlStats.warnings || [];
+  const warnBox = $('#singleHtmlWarnings');
+  warnBox.innerHTML = warnings.length
+    ? '<div class="errlist"><h4>Single HTML build warnings</h4><ul>'
+      + warnings.map(w=>'<li><strong>'+esc(w.app)+'</strong> — '+esc(w.reason)+' <span class="hint">'+esc(w.impact)+'</span></li>').join('')
+      + '</ul></div>'
+    : '';
+  $('#singleHtmlReport').classList.add('show');
+}
+
+$('#downloadSingleHtmlBtn').addEventListener('click', ()=>{
+  if(!state.lastSingleHtmlBlob){ toast('Build the Single HTML file first.', true); return; }
+  const a = document.createElement('a');
+  const name = (state.settings.projectName.trim()||'static-web-apps').replace(/[^a-z0-9\-_. ]/gi,'_');
+  a.href = URL.createObjectURL(state.lastSingleHtmlBlob);
+  a.download = name+'.html';
+  document.body.appendChild(a); a.click(); a.remove();
+});
+
+/* ============================================================
+   SAVE / IMPORT / CLEAR PROJECT
+   ============================================================ */
+function bufferToBase64(buf){
+  let binary=''; const bytes = new Uint8Array(buf);
+  for(let i=0;i<bytes.byteLength;i++) binary += String.fromCharCode(bytes[i]);
+  return btoa(binary);
+}
+function base64ToBuffer(b64){
+  const binary = atob(b64);
+  const bytes = new Uint8Array(binary.length);
+  for(let i=0;i<binary.length;i++) bytes[i]=binary.charCodeAt(i);
+  return bytes.buffer;
+}
+
+$('#saveProjectBtn').addEventListener('click', ()=>{
+  const data = {
+    version:1,
+    settings: {...state.settings,
+      logo: state.settings.logo ? {...state.settings.logo, buffer: bufferToBase64(state.settings.logo.buffer), dataUrl:undefined} : null,
+      favicon: state.settings.favicon ? {...state.settings.favicon, buffer: bufferToBase64(state.settings.favicon.buffer), dataUrl:undefined} : null
+    },
+    apps: state.apps.map(app=>({
+      id:app.id, name:app.name, description:app.description, version:app.version, category:app.category,
+      entryPath:app.entryPath, htmlFiles:app.htmlFiles, autoIcon:app.autoIcon, detectedIconPath:app.detectedIconPath,
+      icon: app.icon.type==='upload' ? {type:'upload', ext:app.icon.ext, buffer:bufferToBase64(app.icon.buffer)} : app.icon,
+      files: app.files.map(f=>({relPath:f.relPath, ext:f.ext, isText:f.isText, text:f.isText?f.text:undefined, buffer:f.isText?undefined:bufferToBase64(f.buffer)}))
+    }))
+  };
+  const blob = new Blob([JSON.stringify(data)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = (state.settings.projectName.trim()||'project')+'.crate-project.json';
+  document.body.appendChild(a); a.click(); a.remove();
+  toast('Project file saved');
+});
+
+$('#importProjectBtn').addEventListener('click', ()=> $('#importProjectInput').click());
+$('#importProjectInput').addEventListener('change', async e=>{
+  const file = e.target.files[0]; e.target.value='';
+  if(!file) return;
+  try{
+    const text = await file.text();
+    const data = JSON.parse(text);
+    state.settings = {...state.settings, ...data.settings};
+    if(data.settings.logo){ state.settings.logo = {...data.settings.logo, buffer: base64ToBuffer(data.settings.logo.buffer)}; state.settings.logo.dataUrl = bufToDataUrl(state.settings.logo.buffer, guessMime(state.settings.logo.ext)); }
+    if(data.settings.favicon){ state.settings.favicon = {...data.settings.favicon, buffer: base64ToBuffer(data.settings.favicon.buffer)}; state.settings.favicon.dataUrl = bufToDataUrl(state.settings.favicon.buffer, guessMime(state.settings.favicon.ext)); }
+    state.apps = (data.apps||[]).map(a=>{
+      const files = a.files.map(f=>({relPath:f.relPath, ext:f.ext, isText:f.isText, text:f.isText?f.text:null, buffer:f.isText? textToBuf(f.text).buffer : base64ToBuffer(f.buffer)}));
+      let icon = a.icon;
+      if(icon && icon.type==='upload' && icon.buffer){ icon = {type:'upload', ext:icon.ext, buffer:base64ToBuffer(icon.buffer)}; icon.dataUrl = bufToDataUrl(icon.buffer, guessMime(icon.ext)); }
+      return {...a, uid: uidCounter++, files, icon};
+    });
+    applySettingsToForm();
+    renderAppList();
+    toast('Project imported');
+  }catch(err){
+    console.error(err);
+    toast('Could not import that project file.', true);
+  }
+});
+
+function applySettingsToForm(){
+  const s = state.settings;
+  $('#projectName').value = s.projectName;
+  $all('input[name=rootFolder]').forEach(r=> r.checked = (r.value==='yes')===!!s.rootFolder);
+  $('#launcherTitle').value = s.launcherTitle;
+  $('#launcherSubtitle').value = s.subtitle||'';
+  $('#themeSelect').value = s.theme;
+  $('#layoutSelect').value = s.layout;
+  $('#showVersion').checked = !!s.showVersion;
+  $('#showCategory').checked = !!s.showCategory;
+  $('#showDescription').checked = !!s.showDescription;
+  $('#categoryFilterToggle').checked = !!s.categoryFilter;
+  $all('input[name=animStyle]').forEach(r=> r.checked = r.value===s.animStyle);
+  $('#animIntensity').value = s.animIntensity;
+  if(!s.logo) $('#logoInput').value = '';
+  if(!s.favicon) $('#faviconInput').value = '';
+  updateBrandingPreview();
+}
+
+$('#clearProjectBtn').addEventListener('click', ()=>{
+  if(!confirm('Clear the current project? This removes all added applications and settings from the builder. Your original files and any downloaded ZIPs are not affected.')) return;
+  state.apps = [];
+  state.settings = {
+    projectName:'Static-Web-Apps', rootFolder:true, launcherTitle:'My Applications', subtitle:'',
+    theme:'system', layout:'grid', showVersion:true, showCategory:true, showDescription:true,
+    categoryFilter:true, animStyle:'smooth', animIntensity:'medium', logo:null, favicon:null
+  };
+  state.lastZipBlob = null; state.lastZipStats = null;
+  state.lastSingleHtmlBlob = null; state.lastSingleHtmlStats = null;
+  applySettingsToForm();
+  renderAppList();
+  $('#buildReport').classList.remove('show');
+  $('#singleHtmlReport').classList.remove('show');
+  $('#singleHtmlWarnings').innerHTML = '';
+  $('#buildLog').style.display='none'; $('#buildLog').innerHTML='';
+  $('#buildProgress').style.display='none';
+  $('#validationErrors').innerHTML='';
+  toast('Project cleared');
+});
+
+/* ============================================================
+   INIT
+   ============================================================ */
+renderAppList();
+})();
+</script>
+</body>
+</html>
